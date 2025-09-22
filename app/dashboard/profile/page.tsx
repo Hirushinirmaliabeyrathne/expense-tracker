@@ -3,7 +3,6 @@ import { useState, useRef, useEffect } from "react"
 import type React from "react"
 
 import Image from "next/image"
-import FileUploadOutlinedIcon from "@mui/icons-material/FileUploadOutlined"
 import EditIcon from "@mui/icons-material/Edit"
 import DeleteIcon from "@mui/icons-material/Delete"
 
@@ -268,32 +267,6 @@ export default function ProfilePage() {
                   </button>
                 )}
               </div>
-
-              <div className="text-center">
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={imageUploading}
-                  className="flex items-center gap-2 text-[#001571] hover:text-[#001571]/80 transition-colors disabled:opacity-50"
-                >
-                  <FileUploadOutlinedIcon />
-                  <span className="max-[320px]:text-sm max-[375px]:text-sm max-[425px]:text-base">
-                    {imageUploading ? "Uploading..." : "Upload Profile Picture"}
-                  </span>
-                </button>
-                {profile.profileImage && !profile.profileImage.includes("placeholder.svg") && (
-                  <button
-                    type="button"
-                    onClick={handleRemoveImage}
-                    className="flex items-center gap-2 text-red-500 hover:text-red-600 transition-colors mt-2"
-                  >
-                    <DeleteIcon />
-                    <span className="max-[320px]:text-sm max-[375px]:text-sm max-[425px]:text-base">Remove Image</span>
-                  </button>
-                )}
-                <p className="text-xs text-gray-500 mt-1">JPG, PNG or GIF (max. 5MB)</p>
-              </div>
-
               <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
             </div>
 

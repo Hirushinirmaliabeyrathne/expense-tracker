@@ -1,20 +1,21 @@
 "use client";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined"
-import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined"
-import LocalOfferOutlinedIcon from "@mui/icons-material/LocalOfferOutlined"
-import FormatListBulletedOutlinedIcon from "@mui/icons-material/FormatListBulletedOutlined"
-import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined"
-import ModeEditOutlinedIcon from "@mui/icons-material/ModeEditOutlined"
-import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined"
-import ArrowRightAltIcon from '@mui/icons-material/ArrowRightAlt';
+import Image from "next/image";
+import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
+import LocalOfferOutlinedIcon from "@mui/icons-material/LocalOfferOutlined";
+import FormatListBulletedOutlinedIcon from "@mui/icons-material/FormatListBulletedOutlined";
+import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined";
+import ModeEditOutlinedIcon from "@mui/icons-material/ModeEditOutlined";
+import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
+import ArrowRightAltIcon from "@mui/icons-material/ArrowRightAlt";
+import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
 
 interface User {
   firstName?: string;
   lastName?: string;
+  title?: string;
   email?: string;
   profileImage?: string;
 }
@@ -24,58 +25,31 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
   const [user, setUser] = useState<User>({});
   const [profilePhoto, setProfilePhoto] = useState<string>("");
-  const pathname = usePathname();
 
-  // Load user data from localStorage on component mount
   useEffect(() => {
-    const loadUserData = () => {
-      const savedProfile = localStorage.getItem("userProfile");
-      if (savedProfile) {
-        const parsed = JSON.parse(savedProfile);
-        setUser({
-          firstName: parsed.firstName || "",
-          lastName: parsed.lastName || "",
-          email: parsed.email || "",
-        });
-        setProfilePhoto(parsed.profileImage || "");
-      }
-    };
-
-    // Load initial data
-    loadUserData();
-
-    // Listen for profile updates
-    const handleProfileUpdate = (event: CustomEvent) => {
-      const updatedProfile = event.detail;
+    const savedProfile = localStorage.getItem("userProfile");
+    if (savedProfile) {
+      const parsed = JSON.parse(savedProfile);
       setUser({
-        firstName: updatedProfile.firstName || "",
-        lastName: updatedProfile.lastName || "",
-        email: updatedProfile.email || "",
+        firstName: parsed.firstName || "",
+        lastName: parsed.lastName || "",
+        email: parsed.email || "",
       });
-      setProfilePhoto(updatedProfile.profileImage || "");
-    };
-
-    window.addEventListener("profileUpdated", handleProfileUpdate as EventListener);
-
-    // Cleanup
-    return () => {
-      window.removeEventListener("profileUpdated", handleProfileUpdate as EventListener);
-    };
+      setProfilePhoto(parsed.profileImage || "");
+    }
   }, []);
 
   const menuItems = [
     { name: "Dashboard", href: "/dashboard", icon: <HomeOutlinedIcon /> },
-    { name: "Profile", href: "/dashboard/profile", icon: <AccountCircleOutlinedIcon /> },
     { name: "Categories", href: "/dashboard/categories", icon: <LocalOfferOutlinedIcon /> },
     { name: "Expenses", href: "/dashboard/expenses", icon: <FormatListBulletedOutlinedIcon /> },
     { name: "Analytics", href: "/dashboard/analytics", icon: <BarChartOutlinedIcon /> },
   ];
 
-
   const handleLogout = () => {
-    // Add logout logic here
     localStorage.removeItem("userProfile");
     console.log("Logout clicked");
   };
@@ -88,27 +62,13 @@ export default function DashboardLayout({
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center space-x-3 mb-4">
             <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center overflow-hidden">
-              {profilePhoto && !profilePhoto.includes("placeholder.svg") ? (
+              {profilePhoto ? (
                 <Image
                   src={profilePhoto}
                   alt="Profile"
                   width={48}
                   height={48}
                   className="w-full h-full object-cover rounded-full"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = "none";
-                    const parent = target.parentElement;
-                    if (parent) {
-                      parent.innerHTML = `
-                        <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                          <span class="text-blue-600 text-xl font-medium">
-                            ${user?.firstName?.[0] || ""}${user?.lastName?.[0] || ""}
-                          </span>
-                        </div>
-                      `;
-                    }
-                  }}
                 />
               ) : user?.firstName || user?.lastName ? (
                 <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
@@ -127,7 +87,7 @@ export default function DashboardLayout({
               </h3>
             </div>
           </div>
-          
+
           <Link
             href="/dashboard/profile"
             className="w-full py-2 px-4 rounded-lg flex items-center justify-center space-x-2 transition-colors bg-[#001571] text-white hover:bg-[#001571]/90"
