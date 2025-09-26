@@ -2,18 +2,10 @@
 import { useState } from "react"
 import AddCircleOutlineRoundedIcon from "@mui/icons-material/AddCircleOutlineRounded"
 import EmojiPicker, { type EmojiClickData } from "emoji-picker-react"
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';
-
-interface Category {
-  id: number
-  name: string
-  emoji: string
-  color: string
-  expenses: number
-  totalSpent: number
-  percentage: number
-}
+import EditIcon from "@mui/icons-material/Edit"
+import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded"
+import AddCategoryModal from "../../components/AddCategoryModal"
+import { type Category, colorOptions, defaultCategories, generateCategoryId } from "../../../data/categoryData"
 
 export default function CategoriesPage() {
   const cards = [
@@ -22,34 +14,26 @@ export default function CategoriesPage() {
     { title: "Total Amount", value: "$1456.48", desc: "All time spending" },
   ]
 
-  const [categories, setCategories] = useState<Category[]>([
-    { id: 1, name: "Food", emoji: "🍽️", color: "#6366F1", expenses: 12, totalSpent: 245.5, percentage: 16.9 },
-    { id: 2, name: "Transportation", emoji: "🚗", color: "#10B981", expenses: 8, totalSpent: 320.0, percentage: 22.0 },
-    { id: 3, name: "Entertainment", emoji: "🎬", color: "#F59E0B", expenses: 5, totalSpent: 125.99, percentage: 8.7 },
-    { id: 4, name: "Shopping", emoji: "🛍️", color: "#EF4444", expenses: 15, totalSpent: 489.99, percentage: 33.6 },
-    { id: 5, name: "Utilities", emoji: "💡", color: "#06B6D4", expenses: 3, totalSpent: 180.0, percentage: 12.4 },
-    { id: 6, name: "Healthcare", emoji: "🏥", color: "#8B5CF6", expenses: 2, totalSpent: 95.0, percentage: 6.5 },
-  ])
+  const [categories, setCategories] = useState<Category[]>(defaultCategories)
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   const [editForm, setEditForm] = useState({ name: "", emoji: "", color: "" })
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
-  const colorOptions = [
-    "#6366F1",
-    "#10B981",
-    "#F59E0B",
-    "#EF4444",
-    "#06B6D4",
-    "#8B5CF6",
-    "#F97316",
-    "#3B82F6",
-    "#EC4899",
-    "#22C55E",
-    "#EAB308",
-    "#F472B6",
-  ]
+  const handleAddCategory = (newCategoryData: { name: string; emoji: string; color: string }) => {
+    const newCategory: Category = {
+      id: generateCategoryId(categories),
+      name: newCategoryData.name,
+      emoji: newCategoryData.emoji,
+      color: newCategoryData.color,
+      expenses: 0,
+      totalSpent: 0,
+      percentage: 0,
+    }
+    setCategories([...categories, newCategory])
+  }
 
   const handleEditCategory = (category: Category) => {
     setEditingCategory(category)
@@ -84,11 +68,13 @@ export default function CategoriesPage() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="px-10 py-4">
-
           <h1 className="text-2xl font-bold">Expense Categories</h1>
           <p className="text-gray-600">Manage your expense categories and track spending patterns</p>
         </div>
-        <button className="px-4 py-2 bg-[#001571] text-white rounded-lg flex items-center gap-2">
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="px-4 py-2 bg-[#001571] text-white rounded-lg flex items-center gap-2"
+        >
           <AddCircleOutlineRoundedIcon />
           Add Category
         </button>
@@ -147,6 +133,13 @@ export default function CategoriesPage() {
           </div>
         ))}
       </div>
+
+      <AddCategoryModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onAddCategory={handleAddCategory}
+        colorOptions={colorOptions}
+      />
 
       {isEditModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

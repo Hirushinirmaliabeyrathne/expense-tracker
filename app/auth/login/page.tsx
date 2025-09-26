@@ -1,15 +1,60 @@
+// LoginForm.tsx
 "use client";
+
 import { useState } from "react";
+import type React from "react";
+import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
-function LoginPage() {
+export default function LoginForm() {
   const [showForgot, setShowForgot] = useState(false);
+  const [formData, setFormData] = useState({ email: "", password: "" });
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    router.push("/dashboard"); 
+    setIsLoading(true);
+
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Login failed");
+
+      alert("Login successful!");
+
+      // Save user profile data to localStorage
+      const userProfileToSave = {
+        firstName: data.user.firstName || "",
+        lastName: data.user.lastName || "",
+        email: data.user.email || formData.email,
+        profileImage: data.user.profileImage || "",
+      };
+      localStorage.setItem("userProfile", JSON.stringify(userProfileToSave));
+
+      router.push("/dashboard");
+    } catch (err: unknown) { // Corrected type
+      let errorMessage = "Something went wrong.";
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      } else if (typeof err === "object" && err !== null && "error" in err) {
+        errorMessage = (err as { error: string }).error;
+      }
+      alert(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -36,13 +81,21 @@ function LoginPage() {
           <form onSubmit={handleLogin} className="space-y-4">
             <input
               type="email"
+              name="email"
               placeholder="Email"
+              value={formData.email}
+              onChange={handleChange}
               className="w-full border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:border-[#001571]"
+              required
             />
             <input
               type="password"
+              name="password"
               placeholder="Password"
+              value={formData.password}
+              onChange={handleChange}
               className="w-full border border-gray-300 rounded-md px-4 py-2 focus:outline-none focus:border-[#001571]"
+              required
             />
             <div className="text-right">
               <button
@@ -55,9 +108,10 @@ function LoginPage() {
             </div>
             <button
               type="submit"
-              className="w-full bg-[#001571] text-white py-2 rounded-md hover:bg-blue-900 transition"
+              disabled={isLoading}
+              className="w-full bg-[#001571] text-white py-2 rounded-md hover:bg-blue-900 transition disabled:opacity-50"
             >
-              Login
+              {isLoading ? "Logging in..." : "Login"}
             </button>
           </form>
 
@@ -77,16 +131,19 @@ function LoginPage() {
           {/* Footer */}
           <p className="text-center text-sm mt-6">
             Don&apos;t have an account?{" "}
-            <a href="#" className="text-[#001571] underline">
-              Register
-            </a>
+            <Link
+              href="/auth/signup"
+              className="text-[#001571] underline hover:text-blue-900"
+            >
+              Signup here
+            </Link>
           </p>
         </div>
       </section>
 
       {/* Forgot Password Modal */}
       {showForgot && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm">
             <h2 className="text-lg font-semibold mb-4">Forgot Password</h2>
             <input
@@ -96,12 +153,12 @@ function LoginPage() {
             />
             <div className="flex justify-between">
               <button
-                className="px-4 py-2 bg-gray-300 rounded-md"
+                className="px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400 transition"
                 onClick={() => setShowForgot(false)}
               >
                 Cancel
               </button>
-              <button className="px-4 py-2 bg-[#001571] text-white rounded-md">
+              <button className="px-4 py-2 bg-[#001571] text-white rounded-md hover:bg-blue-900 transition">
                 Reset Password
               </button>
             </div>
@@ -111,5 +168,3 @@ function LoginPage() {
     </div>
   );
 }
-
-export default LoginPage;

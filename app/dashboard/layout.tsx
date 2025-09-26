@@ -1,3 +1,4 @@
+// DashboardLayout.tsx
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -28,8 +29,10 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const [user, setUser] = useState<User>({});
   const [profilePhoto, setProfilePhoto] = useState<string>("");
+  const [isClient, setIsClient] = useState(false); // State for hydration
 
   useEffect(() => {
+    setIsClient(true); // Mark as client-side after first render
     const savedProfile = localStorage.getItem("userProfile");
     if (savedProfile) {
       const parsed = JSON.parse(savedProfile);
@@ -37,9 +40,31 @@ export default function DashboardLayout({
         firstName: parsed.firstName || "",
         lastName: parsed.lastName || "",
         email: parsed.email || "",
+        profileImage: parsed.profileImage || "", // Ensure profileImage is loaded
       });
       setProfilePhoto(parsed.profileImage || "");
     }
+
+    // Listen for profile updates from ProfilePage
+    const handleProfileUpdate = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail) {
+        setUser(prev => ({
+          ...prev,
+          firstName: customEvent.detail.firstName || "",
+          lastName: customEvent.detail.lastName || "",
+          email: customEvent.detail.email || "",
+          profileImage: customEvent.detail.profileImage || "",
+        }));
+        setProfilePhoto(customEvent.detail.profileImage || "");
+      }
+    };
+
+    window.addEventListener("profileUpdated", handleProfileUpdate);
+
+    return () => {
+      window.removeEventListener("profileUpdated", handleProfileUpdate);
+    };
   }, []);
 
   const menuItems = [
@@ -51,8 +76,15 @@ export default function DashboardLayout({
 
   const handleLogout = () => {
     localStorage.removeItem("userProfile");
+    // Optionally redirect to login page after logout
+    // import { useRouter } from "next/navigation";
+    // const router = useRouter();
+    // router.push("/auth/login");
     console.log("Logout clicked");
   };
+
+  // ✅ Extract initials safely
+  const initials = `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`;
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -62,29 +94,39 @@ export default function DashboardLayout({
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center space-x-3 mb-4">
             <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center overflow-hidden">
-              {profilePhoto ? (
-                <Image
-                  src={profilePhoto}
-                  alt="Profile"
-                  width={48}
-                  height={48}
-                  className="w-full h-full object-cover rounded-full"
-                />
-              ) : user?.firstName || user?.lastName ? (
-                <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                  <span className="text-blue-600 text-xl font-medium">
-                    {user?.firstName?.[0] || ""}
-                    {user?.lastName?.[0] || ""}
-                  </span>
-                </div>
+              {/* Conditional rendering for hydration */}
+              {isClient ? (
+                profilePhoto ? (
+                  <Image
+                    src={profilePhoto}
+                    alt="Profile"
+                    width={48}
+                    height={48}
+                    className="w-full h-full object-cover rounded-full"
+                  />
+                ) : initials ? (
+                  <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                    <span className="text-blue-600 text-xl font-medium">
+                      {initials.toUpperCase()}
+                    </span>
+                  </div>
+                ) : (
+                  <AccountCircleOutlinedIcon className="w-6 h-6 text-gray-600" />
+                )
               ) : (
-                <AccountCircleOutlinedIcon className="w-6 h-6 text-gray-600" />
+                // Placeholder for server render
+                <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center animate-pulse">
+                  <AccountCircleOutlinedIcon className="w-6 h-6 text-gray-400" />
+                </div>
               )}
             </div>
             <div className="flex-1">
               <h3 className="font-semibold text-gray-900">
-                {user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() : "User Name"}
+                {isClient && (user.firstName || user.lastName)
+                  ? `${user.firstName || ""} ${user.lastName || ""}`.trim()
+                  : "User Name"}
               </h3>
+              {/* Email display removed as requested */}
             </div>
           </div>
 
@@ -100,7 +142,9 @@ export default function DashboardLayout({
 
         {/* Navigation Menu */}
         <div className="flex-1 p-4 overflow-y-auto">
-          <h4 className="text-sm font-semibold text-[#001571] tracking-wider mb-4">Main Menu</h4>
+          <h4 className="text-sm font-semibold text-[#001571] tracking-wider mb-4">
+            Main Menu
+          </h4>
           <ul className="space-y-2">
             {menuItems.map((item) => {
               const isActive = pathname === item.href;
@@ -137,7 +181,9 @@ export default function DashboardLayout({
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 bg-gray-100 overflow-y-auto h-screen">{children}</main>
+      <main className="flex-1 bg-gray-100 overflow-y-auto h-screen">
+        {children}
+      </main>
     </div>
   );
 }

@@ -1,5 +1,7 @@
 import React from 'react'
-import LoginPage from './components/Auth/Login/page'
+import LoginPage from './auth/login/page'
+
+
 
 
 function page() {

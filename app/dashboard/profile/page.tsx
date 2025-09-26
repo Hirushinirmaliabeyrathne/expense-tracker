@@ -1,25 +1,26 @@
-"use client"
-import { useState, useRef, useEffect } from "react"
-import type React from "react"
+// ProfilePage.tsx
+"use client";
+import { useState, useRef, useEffect } from "react";
+import type React from "react";
 
-import Image from "next/image"
-import EditIcon from "@mui/icons-material/Edit"
-import DeleteIcon from "@mui/icons-material/Delete"
+import Image from "next/image";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 interface UserProfile {
-  firstName: string
-  lastName: string
-  email: string
-  oldPassword: string
-  newPassword: string
-  profileImage: string
+  firstName: string;
+  lastName: string;
+  email: string;
+  oldPassword: string;
+  newPassword: string;
+  profileImage: string;
 }
 
 export default function ProfilePage() {
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [imageUploading, setImageUploading] = useState(false)
-  const [toastMessage, setToastMessage] = useState<{ message: string; type: "success" | "error" } | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [imageUploading, setImageUploading] = useState(false);
+  const [toastMessage, setToastMessage] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const [profile, setProfile] = useState<UserProfile>({
     firstName: "",
@@ -28,76 +29,76 @@ export default function ProfilePage() {
     oldPassword: "",
     newPassword: "",
     profileImage: "",
-  })
+  });
 
   const showToast = (message: string, type: "success" | "error" = "success") => {
-    setToastMessage({ message, type })
-    setTimeout(() => setToastMessage(null), 3000)
-  }
+    setToastMessage({ message, type });
+    setTimeout(() => setToastMessage(null), 3000);
+  };
 
   useEffect(() => {
-    const savedProfile = localStorage.getItem("userProfile")
+    const savedProfile = localStorage.getItem("userProfile");
     if (savedProfile) {
-      const parsed = JSON.parse(savedProfile)
+      const parsed = JSON.parse(savedProfile);
       setProfile((prev) => ({
         ...prev,
         firstName: parsed.firstName || "",
         lastName: parsed.lastName || "",
         email: parsed.email || "",
         profileImage: parsed.profileImage || "",
-      }))
+      }));
     }
-  }, [])
+  }, []);
 
   const handleInputChange = (field: keyof UserProfile, value: string) => {
     setProfile((prev) => ({
       ...prev,
       [field]: value,
-    }))
-  }
+    }));
+  };
 
   const uploadToCloudinary = async (file: File): Promise<string> => {
-    const formData = new FormData()
-    formData.append("file", file)
+    const formData = new FormData();
+    formData.append("file", file);
 
     const response = await fetch("/api/upload", {
       method: "POST",
       body: formData,
-    })
+    });
 
     if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.error || "Upload failed")
+      const error = await response.json();
+      throw new Error(error.error || "Upload failed");
     }
 
-    const data = await response.json()
-    return data.url
-  }
+    const data = await response.json();
+    return data.url;
+  };
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
+    const file = event.target.files?.[0];
+    if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      showToast("Please select an image file.", "error")
-      return
+      showToast("Please select an image file.", "error");
+      return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      showToast("Please select an image smaller than 5MB.", "error")
-      return
+      showToast("Please select an image smaller than 5MB.", "error");
+      return;
     }
 
-    setImageUploading(true)
+    setImageUploading(true);
 
     try {
-      const imageUrl = await uploadToCloudinary(file)
+      const imageUrl = await uploadToCloudinary(file);
       const updatedProfile = {
         ...profile,
         profileImage: imageUrl,
-      }
-      
-      setProfile(updatedProfile)
+      };
+
+      setProfile(updatedProfile);
 
       // Save to localStorage immediately
       const profileData = {
@@ -105,28 +106,34 @@ export default function ProfilePage() {
         lastName: updatedProfile.lastName,
         email: updatedProfile.email,
         profileImage: imageUrl,
-      }
-      localStorage.setItem("userProfile", JSON.stringify(profileData))
+      };
+      localStorage.setItem("userProfile", JSON.stringify(profileData));
 
       // Dispatch event to update sidebar
-      window.dispatchEvent(new CustomEvent("profileUpdated", { detail: profileData }))
+      window.dispatchEvent(new CustomEvent("profileUpdated", { detail: profileData }));
 
-      showToast("Your profile image has been updated.", "success")
-    } catch (error) {
-      console.error("Error uploading image:", error)
-      showToast("Failed to upload image. Please try again.", "error")
+      showToast("Your profile image has been updated.", "success");
+    } catch (error: unknown) {
+      console.error("Error uploading image:", error);
+      let errorMessage = "Failed to upload image. Please try again.";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === "object" && error !== null && "message" in error) {
+        errorMessage = (error as { message: string }).message;
+      }
+      showToast(errorMessage, "error");
     } finally {
-      setImageUploading(false)
+      setImageUploading(false);
     }
-  }
+  };
 
   const handleRemoveImage = () => {
     const updatedProfile = {
       ...profile,
       profileImage: "",
-    }
-    
-    setProfile(updatedProfile)
+    };
+
+    setProfile(updatedProfile);
 
     // Save to localStorage immediately
     const profileData = {
@@ -134,236 +141,272 @@ export default function ProfilePage() {
       lastName: updatedProfile.lastName,
       email: updatedProfile.email,
       profileImage: "",
-    }
-    localStorage.setItem("userProfile", JSON.stringify(profileData))
+    };
+    localStorage.setItem("userProfile", JSON.stringify(profileData));
 
     // Dispatch event to update sidebar
-    window.dispatchEvent(new CustomEvent("profileUpdated", { detail: profileData }))
+    window.dispatchEvent(new CustomEvent("profileUpdated", { detail: profileData }));
 
-    showToast("Profile image removed.", "success")
-  }
+    showToast("Profile image removed.", "success");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
+    e.preventDefault();
+    
+    if (!profile.firstName.trim() || !profile.lastName.trim() || !profile.email.trim()) {
+      showToast("Please fill in all required fields.", "error");
+      return;
+    }
+
+    if (profile.newPassword && !profile.oldPassword) {
+      showToast("Please enter your old password to change password.", "error");
+      return;
+    }
+
+    setIsLoading(true);
 
     try {
+      // Save profile data to localStorage
       const profileData = {
         firstName: profile.firstName,
         lastName: profile.lastName,
         email: profile.email,
         profileImage: profile.profileImage,
-      }
+      };
+      localStorage.setItem("userProfile", JSON.stringify(profileData));
 
-      localStorage.setItem("userProfile", JSON.stringify(profileData))
+      // Dispatch event to update sidebar
+      window.dispatchEvent(new CustomEvent("profileUpdated", { detail: profileData }));
 
-      window.dispatchEvent(new CustomEvent("profileUpdated", { detail: profileData }))
-
-      showToast("Your profile information has been saved.", "success")
-
-      setProfile((prev) => ({
+      // Clear password fields
+      setProfile(prev => ({
         ...prev,
         oldPassword: "",
         newPassword: "",
-      }))
-    } catch (error) {
-      console.error("Error updating profile:", error)
-      showToast("Failed to update profile. Please try again.", "error")
-    } finally {
-      setIsLoading(false)
-    }
-  }
+      }));
 
-  // Function to render profile image or initials
-  const renderProfileDisplay = () => {
-    if (profile.profileImage && !profile.profileImage.includes("placeholder.svg")) {
-      return (
-        <Image 
-          src={profile.profileImage} 
-          alt="Profile" 
-          fill 
-          className="object-cover"
-          onError={(e) => {
-            // If image fails to load, show initials
-            const target = e.target as HTMLImageElement
-            target.style.display = "none"
-            const parent = target.parentElement
-            if (parent) {
-              parent.innerHTML = `
-                <div class="w-full h-full rounded-full bg-blue-100 flex items-center justify-center">
-                  <span class="text-blue-600 text-4xl font-medium">
-                    ${profile.firstName?.[0] || ""}${profile.lastName?.[0] || ""}
-                  </span>
-                </div>
-              `
-            }
-          }}
-        />
-      )
-    } else if (profile.firstName || profile.lastName) {
-      return (
-        <div className="w-full h-full rounded-full bg-blue-100 flex items-center justify-center">
-          <span className="text-blue-600 text-4xl font-medium">
-            {profile.firstName?.[0] || ""}{profile.lastName?.[0] || ""}
-          </span>
-        </div>
-      )
-    } else {
-      return (
-        <Image 
-          src="/placeholder.svg" 
-          alt="Profile" 
-          fill 
-          className="object-cover" 
-        />
-      )
+      showToast("Profile updated successfully!", "success");
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      showToast("Failed to update profile. Please try again.", "error");
+    } finally {
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
-    <div className="p-4 max-[320px]:p-2 max-[375px]:p-3 max-[425px]:p-4 md:p-6 lg:p-8 max-w-4xl mx-auto">
-      {toastMessage && (
-        <div
-          className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg ${
-            toastMessage.type === "success" ? "bg-green-500 text-white" : "bg-red-500 text-white"
-          }`}
-        >
-          {toastMessage.message}
-        </div>
-      )}
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-white shadow-lg rounded-lg overflow-hidden">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-8">
+            <h1 className="text-3xl font-bold text-white">Profile Settings</h1>
+            <p className="text-blue-100 mt-2">Manage your account information and preferences</p>
+          </div>
 
-      <div className="w-full bg-white rounded-lg shadow-md border border-gray-200">
-        <div className="p-6 border-b border-gray-200">
-          <h1 className="text-2xl max-[320px]:text-xl max-[375px]:text-xl max-[425px]:text-2xl font-bold text-gray-800">
-            Profile Settings
-          </h1>
-        </div>
-        <div className="p-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="flex flex-col items-center space-y-4">
-              <div className="relative">
-                <div className="w-32 h-32 max-[320px]:w-24 max-[320px]:h-24 max-[375px]:w-28 max-[375px]:h-28 max-[425px]:w-32 max-[425px]:h-32 rounded-full overflow-hidden border-4 border-gray-200 relative">
-                  {renderProfileDisplay()}
+          <div className="p-6">
+            <form onSubmit={handleSubmit} className="space-y-8">
+              {/* Profile Picture Section */}
+              <div className="flex items-start space-x-6">
+                <div className="relative">
+                  <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
+                    {profile.profileImage ? (
+                      <Image
+                        src={profile.profileImage}
+                        alt="Profile"
+                        width={128}
+                        height={128}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
+                        <span className="text-white text-3xl font-bold">
+                          {profile.firstName ? profile.firstName.charAt(0).toUpperCase() : 'U'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {imageUploading && (
+                    <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                    </div>
+                  )}
                 </div>
+
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Profile Picture</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Upload a profile picture. Max file size: 5MB. Supported formats: JPG, PNG, GIF.
+                  </p>
+                  
+                  <div className="flex space-x-3">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={imageUploading}
+                      className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                    >
+                      <EditIcon className="mr-2 h-4 w-4" />
+                      {imageUploading ? 'Uploading...' : 'Change Picture'}
+                    </button>
+                    
+                    {profile.profileImage && (
+                      <button
+                        type="button"
+                        onClick={handleRemoveImage}
+                        className="inline-flex items-center px-4 py-2 border border-red-300 rounded-md shadow-sm bg-white text-sm font-medium text-red-700 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        <DeleteIcon className="mr-2 h-4 w-4" />
+                        Remove
+                      </button>
+                    )}
+                  </div>
+
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                </div>
+              </div>
+
+              {/* Personal Information */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
+                      First Name *
+                    </label>
+                    <input
+                      type="text"
+                      id="firstName"
+                      value={profile.firstName}
+                      onChange={(e) => handleInputChange('firstName', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
+                      Last Name *
+                    </label>
+                    <input
+                      type="text"
+                      id="lastName"
+                      value={profile.lastName}
+                      onChange={(e) => handleInputChange('lastName', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                      Email Address *
+                    </label>
+                    <input
+                      type="email"
+                      id="email"
+                      value={profile.email}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Password Change Section */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Change Password</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label htmlFor="oldPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                      Current Password
+                    </label>
+                    <input
+                      type="password"
+                      id="oldPassword"
+                      value={profile.oldPassword}
+                      onChange={(e) => handleInputChange('oldPassword', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Enter current password"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                      New Password
+                    </label>
+                    <input
+                      type="password"
+                      id="newPassword"
+                      value={profile.newPassword}
+                      onChange={(e) => handleInputChange('newPassword', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Enter new password"
+                    />
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600 mt-2">
+                  Leave blank if you don&apos;t want to change your password
+                </p>
+              </div>
+
+              {/* Submit Button */}
+              <div className="flex justify-end">
                 <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={imageUploading}
-                  className="absolute bottom-0 right-0 bg-[#001571] text-white p-2 rounded-full hover:bg-[#001571]/90 transition-colors disabled:opacity-50"
+                  type="submit"
+                  disabled={isLoading}
+                  className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {imageUploading ? (
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  {isLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Updating...
+                    </>
                   ) : (
-                    <EditIcon className="w-5 h-5" />
+                    'Update Profile'
                   )}
                 </button>
-                {profile.profileImage && !profile.profileImage.includes("placeholder.svg") && (
-                  <button
-                    type="button"
-                    onClick={handleRemoveImage}
-                    className="absolute bottom-0 left-0 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
-                  >
-                    <DeleteIcon className="w-5 h-5" />
-                  </button>
-                )}
               </div>
-              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-[320px]:gap-3 max-[375px]:gap-3 max-[425px]:gap-4">
-              <div className="space-y-2">
-                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
-                  First Name
-                </label>
-                <input
-                  id="firstName"
-                  type="text"
-                  placeholder="Enter your first name"
-                  value={profile.firstName}
-                  onChange={(e) => handleInputChange("firstName", e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001571] focus:border-[#001571]"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
-                  Last Name
-                </label>
-                <input
-                  id="lastName"
-                  type="text"
-                  placeholder="Enter your last name"
-                  value={profile.lastName}
-                  onChange={(e) => handleInputChange("lastName", e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001571] focus:border-[#001571]"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email Address
-              </label>
-              <input
-                id="email"
-                type="email"
-                placeholder="Enter your email address"
-                value={profile.email}
-                onChange={(e) => handleInputChange("email", e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001571] focus:border-[#001571]"
-              />
-              <p className="text-xs text-gray-500">Enter your email address</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-[320px]:gap-3 max-[375px]:gap-3 max-[425px]:gap-4">
-              <div className="space-y-2">
-                <label htmlFor="oldPassword" className="block text-sm font-medium text-gray-700">
-                  Current Password
-                </label>
-                <input
-                  id="oldPassword"
-                  type="password"
-                  placeholder="Enter current password"
-                  value={profile.oldPassword}
-                  onChange={(e) => handleInputChange("oldPassword", e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001571] focus:border-[#001571]"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">
-                  New Password
-                </label>
-                <input
-                  id="newPassword"
-                  type="password"
-                  placeholder="Enter new password"
-                  value={profile.newPassword}
-                  onChange={(e) => handleInputChange("newPassword", e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#001571] focus:border-[#001571]"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-4">
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="bg-[#001571] hover:bg-[#001571]/90 text-white px-8 py-2 max-[320px]:px-6 max-[320px]:py-2 max-[375px]:px-6 max-[375px]:py-2 max-[425px]:px-8 max-[425px]:py-2 rounded-md font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Updating...
-                  </div>
-                ) : (
-                  "Update Profile"
-                )}
-              </button>
-            </div>
-          </form>
+            </form>
+          </div>
         </div>
       </div>
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className={`fixed bottom-4 right-4 max-w-sm w-full bg-white border-l-4 ${
+          toastMessage.type === 'success' ? 'border-green-400' : 'border-red-400'
+        } rounded-lg shadow-lg transform transition-all duration-300 ease-in-out`}>
+          <div className="p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                {toastMessage.type === 'success' ? (
+                  <svg className="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                ) : (
+                  <svg className="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                )}
+              </div>
+              <div className="ml-3">
+                <p className={`text-sm ${toastMessage.type === 'success' ? 'text-green-800' : 'text-red-800'}`}>
+                  {toastMessage.message}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-  )
+  );
 }

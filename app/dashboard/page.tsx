@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from "react"
 import Card from "../components/Card"
+import AddExpenseModal, { type ExpenseData } from "../components/addexpensemodal"
+import { defaultExpenses, type Expense, generateExpenseId, categoryColors } from "../../data/expenseData"
+import AddCircleOutlineRoundedIcon from "@mui/icons-material/AddCircleOutlineRounded"
 import {
   Chart as ChartJS,
   ArcElement,
@@ -33,41 +36,63 @@ interface ChartData {
 }
 
 export default function DashboardPage() {
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [expenses, setExpenses] = useState<Expense[]>(defaultExpenses)
+
   const cards = [
     { title: "Users", value: "1,230", desc: "Total registered users" },
     { title: "Revenue", value: "$8,540", desc: "Monthly revenue" },
-    { title: "Expenses", value: "$3,200", desc: "Monthly expenses" },
+    {
+      title: "Expenses",
+      value: `$${expenses.reduce((sum, exp) => sum + exp.amount, 0).toFixed(2)}`,
+      desc: "Monthly expenses",
+    },
     { title: "Growth", value: "12%", desc: "Compared to last month" },
   ]
 
-  // Example dynamic data (could be fetched from API later)
   const [expensesData, setExpensesData] = useState<ChartData | null>(null)
   const [monthlyTrend, setMonthlyTrend] = useState<ChartData | null>(null)
 
-  useEffect(() => {
-    // Simulate fetch data
-    const expenses = {
-      labels: ["Food", "Transportation", "Entertainment", "Shopping"],
-      values: [61, 120, 25.99, 89.99],
+  const handleAddExpense = (expenseData: ExpenseData) => {
+    const newExpense: Expense = {
+      id: generateExpenseId(),
+      ...expenseData,
+      createdAt: new Date(),
     }
+    setExpenses((prev) => [newExpense, ...prev])
+  }
 
+  useEffect(() => {
+    const categoryTotals = expenses.reduce(
+      (acc, expense) => {
+        acc[expense.category] = (acc[expense.category] || 0) + expense.amount
+        return acc
+      },
+      {} as Record<string, number>,
+    )
+
+    const categories = Object.keys(categoryTotals)
+    const values = Object.values(categoryTotals)
+    const colors = categories.map((cat) => categoryColors[cat] || "#6B7280")
+
+    setExpensesData({
+      labels: categories,
+      datasets: [
+        {
+          label: "Expenses",
+          data: values,
+          backgroundColor: colors,
+          borderWidth: 0,
+          cutout: "60%",
+        },
+      ],
+    })
+
+    // Monthly trend (keeping original logic for now)
     const monthly = {
       labels: ["Dec", "Jan", "Feb", "Mar"],
       values: [280, 300, 250, 320],
     }
-
-    setExpensesData({
-      labels: expenses.labels,
-      datasets: [
-        {
-          label: "Expenses",
-          data: expenses.values,
-          backgroundColor: ["#9CA3AF", "#6B7280", "#4B5563", "#374151"], // grayscale colors
-          borderWidth: 0,
-          cutout: "60%", // Creates donut effect
-        },
-      ],
-    })
 
     setMonthlyTrend({
       labels: monthly.labels,
@@ -79,7 +104,7 @@ export default function DashboardPage() {
         },
       ],
     })
-  }, [])
+  }, [expenses])
 
   const pieOptions = {
     plugins: {
@@ -95,16 +120,26 @@ export default function DashboardPage() {
     maintainAspectRatio: false,
   }
 
-  const legendData = [
-    { label: "Food", value: 61, color: "#6366F1" },
-    { label: "Transportation", value: 120, color: "#10B981" },
-    { label: "Entertainment", value: 25.99, color: "#F59E0B" },
-    { label: "Shopping", value: 89.99, color: "#EF4444" },
-  ]
+  const legendData = expensesData
+    ? expensesData.labels.map((label, index) => ({
+        label,
+        value: expensesData.datasets[0].data[index],
+        color: Array.isArray(expensesData.datasets[0].backgroundColor)
+          ? expensesData.datasets[0].backgroundColor[index]
+          : expensesData.datasets[0].backgroundColor,
+      }))
+    : []
 
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
+      <button
+        onClick={() => setIsModalOpen(true)}
+        className="px-4 py-2 bg-[#001571] text-white rounded-lg flex items-center gap-2 justify-end hover:bg-[#001571]/90 transition"
+      >
+        <AddCircleOutlineRoundedIcon />
+        Add Expense
+      </button>
 
       {/* Cards Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -150,63 +185,27 @@ export default function DashboardPage() {
         <p className="text-sm text-gray-500 mb-4">Your latest spending activity</p>
 
         <div className="space-y-4">
-          {/* Expense Item */}
-          <div className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">🍽️</span>
-              <div>
-                <p className="font-medium">Lunch at restaurant</p>
-                <p className="text-xs text-gray-500">Food • 2024-01-15</p>
+          {expenses.slice(0, 5).map((expense) => (
+            <div
+              key={expense.id}
+              className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{expense.emoji}</span>
+                <div>
+                  <p className="font-medium">{expense.description}</p>
+                  <p className="text-xs text-gray-500">
+                    {expense.category} • {expense.date}
+                  </p>
+                </div>
               </div>
+              <p className="font-semibold">${expense.amount}</p>
             </div>
-            <p className="font-semibold">$45.5</p>
-          </div>
-
-          <div className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">⛽</span>
-              <div>
-                <p className="font-medium">Gas for car</p>
-                <p className="text-xs text-gray-500">Transportation • 2024-01-14</p>
-              </div>
-            </div>
-            <p className="font-semibold">$120</p>
-          </div>
-
-          <div className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">🎬</span>
-              <div>
-                <p className="font-medium">Movie tickets</p>
-                <p className="text-xs text-gray-500">Entertainment • 2024-01-13</p>
-              </div>
-            </div>
-            <p className="font-semibold">$25.99</p>
-          </div>
-
-          <div className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">🛍️</span>
-              <div>
-                <p className="font-medium">Clothes</p>
-                <p className="text-xs text-gray-500">Shopping • 2024-01-12</p>
-              </div>
-            </div>
-            <p className="font-semibold">$89.99</p>
-          </div>
-
-          <div className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">☕</span>
-              <div>
-                <p className="font-medium">Coffee</p>
-                <p className="text-xs text-gray-500">Food • 2024-01-11</p>
-              </div>
-            </div>
-            <p className="font-semibold">$15.5</p>
-          </div>
+          ))}
         </div>
       </div>
+
+      <AddExpenseModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onAddExpense={handleAddExpense} />
     </div>
   )
 }
