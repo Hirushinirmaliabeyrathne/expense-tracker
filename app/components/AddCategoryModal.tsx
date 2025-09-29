@@ -5,32 +5,26 @@ import EmojiPicker, { type EmojiClickData } from "emoji-picker-react"
 interface AddCategoryModalProps {
   isOpen: boolean
   onClose: () => void
-  onAddCategory: (category: { name: string; emoji: string; color: string }) => void
+  onAddCategory: (categoryData: { name: string; emoji: string; color: string }) => void
   colorOptions: string[]
 }
 
 export default function AddCategoryModal({ isOpen, onClose, onAddCategory, colorOptions }: AddCategoryModalProps) {
-  const [form, setForm] = useState({ name: "", emoji: "📝", color: "#6366F1" })
+  const [form, setForm] = useState({ name: "", emoji: "😀", color: colorOptions[0] })
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
-
-  const handleEmojiSelect = (emojiData: EmojiClickData) => {
-    setForm({ ...form, emoji: emojiData.emoji })
-    setShowEmojiPicker(false)
-  }
 
   const handleSubmit = () => {
     if (form.name.trim()) {
       onAddCategory(form)
-      setForm({ name: "", emoji: "📝", color: "#6366F1" })
+      setForm({ name: "", emoji: "😀", color: colorOptions[0] })
       setShowEmojiPicker(false)
       onClose()
     }
   }
 
-  const handleCancel = () => {
-    setForm({ name: "", emoji: "📝", color: "#6366F1" })
+  const handleEmojiSelect = (emojiData: EmojiClickData) => {
+    setForm({ ...form, emoji: emojiData.emoji })
     setShowEmojiPicker(false)
-    onClose()
   }
 
   if (!isOpen) return null
@@ -40,7 +34,7 @@ export default function AddCategoryModal({ isOpen, onClose, onAddCategory, color
       <div className="bg-white rounded-xl p-6 w-96 max-w-90vw">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Add New Category</h2>
-          <button onClick={handleCancel} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             ✕
           </button>
         </div>
@@ -53,7 +47,7 @@ export default function AddCategoryModal({ isOpen, onClose, onAddCategory, color
             type="text"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full p-3 border rounded-lg"
             placeholder="Enter category name"
           />
         </div>
@@ -61,7 +55,7 @@ export default function AddCategoryModal({ isOpen, onClose, onAddCategory, color
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2">Emoji</label>
           <div
-            className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50"
+            className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50"
             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
           >
             <span className="text-2xl">{form.emoji}</span>
@@ -91,17 +85,10 @@ export default function AddCategoryModal({ isOpen, onClose, onAddCategory, color
         </div>
 
         <div className="flex gap-3">
-          <button
-            onClick={handleCancel}
-            className="flex-1 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50"
-          >
+          <button onClick={onClose} className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50">
             Cancel
           </button>
-          <button
-            onClick={handleSubmit}
-            className="flex-1 px-4 py-2 bg-[#001571] text-white rounded-lg hover:bg-[#001571]/90"
-            disabled={!form.name.trim()}
-          >
+          <button onClick={handleSubmit} className="flex-1 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800">
             Add Category
           </button>
         </div>

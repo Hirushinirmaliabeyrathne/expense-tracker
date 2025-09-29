@@ -1,67 +1,194 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import AddCircleOutlineRoundedIcon from "@mui/icons-material/AddCircleOutlineRounded"
 import EmojiPicker, { type EmojiClickData } from "emoji-picker-react"
 import EditIcon from "@mui/icons-material/Edit"
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded"
 import AddCategoryModal from "../../components/AddCategoryModal"
-import { type Category, colorOptions, defaultCategories, generateCategoryId } from "../../../data/categoryData"
+import { type ICategory, colorOptions } from "../../../models/Category"
+import { useToast } from "../../hooks/use-toast"
 
 export default function CategoriesPage() {
-  const cards = [
-    { title: "Total Categories", value: "6", desc: "Active categories" },
-    { title: "Total Expenses", value: "45", desc: "Across all categories" },
-    { title: "Total Amount", value: "$1456.48", desc: "All time spending" },
-  ]
-
-  const [categories, setCategories] = useState<Category[]>(defaultCategories)
+  const { toast } = useToast()
+  const [categories, setCategories] = useState<ICategory[]>([])
+  const [loading, setLoading] = useState(true)
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null)
+  const [editingCategory, setEditingCategory] = useState<ICategory | null>(null)
   const [editForm, setEditForm] = useState({ name: "", emoji: "", color: "" })
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
-  const handleAddCategory = (newCategoryData: { name: string; emoji: string; color: string }) => {
-    const newCategory: Category = {
-      id: generateCategoryId(categories),
-      name: newCategoryData.name,
-      emoji: newCategoryData.emoji,
-      color: newCategoryData.color,
-      expenses: 0,
-      totalSpent: 0,
-      percentage: 0,
+  useEffect(() => {
+    fetchCategories()
+  }, [])
+
+  const fetchCategories = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch("/api/categories")
+      const result = await response.json()
+
+      if (result.success) {
+        setCategories(result.data)
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to fetch categories",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Error fetching categories:", error)
+      toast({
+        title: "Error",
+        description: "Failed to fetch categories",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
     }
-    setCategories([...categories, newCategory])
   }
 
-  const handleEditCategory = (category: Category) => {
+  const handleAddCategory = async (newCategoryData: { name: string; emoji: string; color: string }) => {
+    try {
+      const response = await fetch("/api/categories", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newCategoryData),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setCategories([...categories, result.data])
+        toast({
+          title: "Success",
+          description: "Category added successfully!",
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to add category",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Error adding category:", error)
+      toast({
+        title: "Error",
+        description: "Failed to add category",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleEditCategory = (category: ICategory) => {
     setEditingCategory(category)
     setEditForm({ name: category.name, emoji: category.emoji, color: category.color })
     setIsEditModalOpen(true)
   }
 
-  const handleUpdateCategory = () => {
+  const handleUpdateCategory = async () => {
     if (editingCategory) {
-      setCategories(
-        categories.map((cat) =>
-          cat.id === editingCategory.id
-            ? { ...cat, name: editForm.name, emoji: editForm.emoji, color: editForm.color }
-            : cat,
-        ),
-      )
-      setIsEditModalOpen(false)
-      setEditingCategory(null)
+      try {
+        const response = await fetch(`/api/categories/${editingCategory.id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(editForm),
+        })
+
+        const result = await response.json()
+
+        if (result.success) {
+          setCategories(categories.map((cat) => (cat.id === editingCategory.id ? result.data : cat)))
+          setIsEditModalOpen(false)
+          setEditingCategory(null)
+          toast({
+            title: "Success",
+            description: "Category updated successfully!",
+          })
+        } else {
+          toast({
+            title: "Error",
+            description: result.error || "Failed to update category",
+            variant: "destructive",
+          })
+        }
+      } catch (error) {
+        console.error("Error updating category:", error)
+        toast({
+          title: "Error",
+          description: "Failed to update category",
+          variant: "destructive",
+        })
+      }
     }
   }
 
-  const handleDeleteCategory = (categoryId: number) => {
-    setCategories(categories.filter((cat) => cat.id !== categoryId))
+  const handleDeleteCategory = async (categoryId: string) => {
+    try {
+      const response = await fetch(`/api/categories/${categoryId}`, {
+        method: "DELETE",
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setCategories(categories.filter((cat) => cat.id.toString() !== categoryId.toString()))
+        toast({
+          title: "Success",
+          description: "Category deleted successfully!",
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to delete category",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Error deleting category:", error)
+      toast({
+        title: "Error",
+        description: "Failed to delete category",
+        variant: "destructive",
+      })
+    }
   }
 
   const handleEmojiSelect = (emojiData: EmojiClickData) => {
     setEditForm({ ...editForm, emoji: emojiData.emoji })
     setShowEmojiPicker(false)
+  }
+
+  const cards = [
+    { title: "Total Categories", value: categories.length.toString(), desc: "Active categories" },
+    {
+      title: "Total Expenses",
+      value: categories.reduce((sum, cat) => sum + cat.expenses, 0).toString(),
+      desc: "Across all categories",
+    },
+    {
+      title: "Total Amount",
+      value: `$${categories.reduce((sum, cat) => sum + cat.totalSpent, 0).toFixed(2)}`,
+      desc: "All time spending",
+    },
+  ]
+
+  if (loading) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading categories...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -99,7 +226,7 @@ export default function CategoriesPage() {
               <button onClick={() => handleEditCategory(category)} className="text-gray-400 hover:text-blue-600 mr-2">
                 <EditIcon />
               </button>
-              <button onClick={() => handleDeleteCategory(category.id)} className="text-gray-400 hover:text-red-600">
+              <button onClick={() => handleDeleteCategory(category.id.toString())} className="text-gray-400 hover:text-red-600">
                 <DeleteRoundedIcon />
               </button>
             </div>
@@ -159,14 +286,14 @@ export default function CategoriesPage() {
                 type="text"
                 value={editForm.name}
                 onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                className="w-full p-3 rounded-lg"
+                className="w-full p-3 border rounded-lg"
               />
             </div>
 
             <div className="mb-4">
               <label className="block text-sm font-medium mb-2">Emoji</label>
               <div
-                className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-50"
+                className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50"
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
               >
                 <span className="text-2xl">{editForm.emoji || "😀"}</span>
@@ -186,7 +313,9 @@ export default function CategoriesPage() {
                   <button
                     key={color}
                     onClick={() => setEditForm({ ...editForm, color })}
-                    className={`w-8 h-8 rounded-full`}
+                    className={`w-8 h-8 rounded-full border-2 ${
+                      editForm.color === color ? "border-gray-800" : "border-transparent"
+                    }`}
                     style={{ backgroundColor: color }}
                   />
                 ))}
@@ -196,7 +325,7 @@ export default function CategoriesPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => setIsEditModalOpen(false)}
-                className="flex-1 px-4 py-2 rounded-lg hover:bg-gray-50"
+                className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
               >
                 Cancel
               </button>

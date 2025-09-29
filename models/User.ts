@@ -1,32 +1,80 @@
-// models/User.ts
-import mongoose, { Schema, models } from "mongoose";
+import mongoose from "mongoose"
+import bcrypt from "bcryptjs"
 
-const userSchema = new Schema({
-  firstName: {
-    type: String,
-    required: true,
-  },
-  lastName: {
-    type: String,
-    required: true,
-  },
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  password: {
-    type: String,
-    required: true,
-  },
-  contactNumber: {
-    type: String, // Optional, depending on your signup form
-  },
-  profileImage: { // New field for profile image URL
-    type: String,
-    default: "", // Default to empty string if no image
-  },
-}, { timestamps: true });
+export interface IUser {
+  _id?: string
+  firstName: string
+  lastName: string
+  email: string
+  password: string
+  contactNumber?: string
+  profileImage?: string
+  createdAt?: Date
+  updatedAt?: Date
+}
 
-const User = models.User || mongoose.model("User", userSchema);
-export default User;
+const userSchema = new mongoose.Schema<IUser>(
+  {
+    firstName: {
+      type: String,
+      required: [true, "First name is required"],
+      trim: true,
+    },
+    lastName: {
+      type: String,
+      required: [true, "Last name is required"],
+      trim: true,
+    },
+    email: {
+      type: String,
+      required: [true, "Email is required"],
+      unique: true,
+      lowercase: true,
+      trim: true,
+      match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, "Please enter a valid email"],
+    },
+    password: {
+      type: String,
+      required: [true, "Password is required"],
+      minlength: [6, "Password must be at least 6 characters"],
+    },
+    contactNumber: {
+      type: String,
+      trim: true,
+    },
+    profileImage: {
+      type: String,
+      default: "",
+    },
+  },
+  {
+    timestamps: true,
+  },
+)
+
+// Hash password before saving
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next()
+
+  try {
+    const salt = await bcrypt.genSalt(12)
+    this.password = await bcrypt.hash(this.password, salt)
+    next()
+  } catch (error) {
+    next(error as Error)
+  }
+})
+
+// Compare password method
+userSchema.methods.comparePassword = async function (candidatePassword: string): Promise<boolean> {
+  return bcrypt.compare(candidatePassword, this.password)
+}
+
+// Remove password from JSON output
+userSchema.methods.toJSON = function () {
+  const userObject = this.toObject()
+  delete userObject.password
+  return userObject
+}
+
+export default mongoose.models.User || mongoose.model<IUser>("User", userSchema)

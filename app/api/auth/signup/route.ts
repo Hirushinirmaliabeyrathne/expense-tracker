@@ -41,8 +41,8 @@ export async function POST(req: Request) {
       lastName,
       email,
       password: hashedPassword,
-      contactNumber: contactNumber || "", // Ensure contactNumber is saved, or default
-      profileImage: "", // New users start with an empty profile image URL
+      contactNumber: contactNumber || "", 
+      profileImage: "", 
     });
 
     return NextResponse.json(

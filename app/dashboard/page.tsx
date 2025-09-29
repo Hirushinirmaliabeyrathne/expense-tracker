@@ -35,9 +35,31 @@ interface ChartData {
   datasets: ChartDataset[]
 }
 
+// User interface
+interface User {
+  firstName?: string
+  lastName?: string
+  email?: string
+  profileImage?: string
+}
+
 export default function DashboardPage() {
+  // 👤 User state
+  const [user, setUser] = useState<User>({})
+
+  // 📌 Load user from localStorage
+  useEffect(() => {
+    const savedProfile = localStorage.getItem("userProfile")
+    if (savedProfile) {
+      setUser(JSON.parse(savedProfile))
+    }
+  }, [])
+
+  // Existing states
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [expenses, setExpenses] = useState<Expense[]>(defaultExpenses)
+  const [expensesData, setExpensesData] = useState<ChartData | null>(null)
+  const [monthlyTrend, setMonthlyTrend] = useState<ChartData | null>(null)
 
   const cards = [
     { title: "Users", value: "1,230", desc: "Total registered users" },
@@ -49,9 +71,6 @@ export default function DashboardPage() {
     },
     { title: "Growth", value: "12%", desc: "Compared to last month" },
   ]
-
-  const [expensesData, setExpensesData] = useState<ChartData | null>(null)
-  const [monthlyTrend, setMonthlyTrend] = useState<ChartData | null>(null)
 
   const handleAddExpense = (expenseData: ExpenseData) => {
     const newExpense: Expense = {
@@ -88,7 +107,7 @@ export default function DashboardPage() {
       ],
     })
 
-    // Monthly trend (keeping original logic for now)
+    // Monthly trend
     const monthly = {
       labels: ["Dec", "Jan", "Feb", "Mar"],
       values: [280, 300, 250, 320],
@@ -132,7 +151,15 @@ export default function DashboardPage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
+      {/* 👤 User Welcome Section */}
+      <h1 className="text-2xl font-bold mb-2">
+        Welcome, {user.firstName ? `${user.firstName} ${user.lastName}` : "User"}
+      </h1>
+      <p className="text-gray-600 mb-6">
+        {user.email ? `Logged in as ${user.email}` : "No email found"}
+      </p>
+
+      {/* Add Expense Button */}
       <button
         onClick={() => setIsModalOpen(true)}
         className="px-4 py-2 bg-[#001571] text-white rounded-lg flex items-center gap-2 justify-end hover:bg-[#001571]/90 transition"
@@ -142,7 +169,7 @@ export default function DashboardPage() {
       </button>
 
       {/* Cards Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 mt-6">
         {cards.map((card) => (
           <Card key={card.title} title={card.title} value={card.value} desc={card.desc} />
         ))}
@@ -205,7 +232,12 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <AddExpenseModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onAddExpense={handleAddExpense} />
+      {/* Add Expense Modal */}
+      <AddExpenseModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onAddExpense={handleAddExpense}
+      />
     </div>
   )
 }

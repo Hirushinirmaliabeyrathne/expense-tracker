@@ -29,10 +29,10 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const [user, setUser] = useState<User>({});
   const [profilePhoto, setProfilePhoto] = useState<string>("");
-  const [isClient, setIsClient] = useState(false); // State for hydration
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    setIsClient(true); // Mark as client-side after first render
+    setIsClient(true); 
     const savedProfile = localStorage.getItem("userProfile");
     if (savedProfile) {
       const parsed = JSON.parse(savedProfile);
@@ -40,7 +40,7 @@ export default function DashboardLayout({
         firstName: parsed.firstName || "",
         lastName: parsed.lastName || "",
         email: parsed.email || "",
-        profileImage: parsed.profileImage || "", // Ensure profileImage is loaded
+        profileImage: parsed.profileImage || "", 
       });
       setProfilePhoto(parsed.profileImage || "");
     }
