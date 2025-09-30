@@ -1,60 +1,77 @@
-import { type NextRequest, NextResponse } from "next/server"
-import clientPromise from "@/lib/mongodb"
-import type { ICategory } from "../../../../models/Category"
-import { Category } from "@/data/categoryData"
+import { NextResponse, type NextRequest } from "next/server";
+import { connectDB } from "@/lib/mongodb";
+import Category from "@/models/Category";
+import { verifyAuth } from "@/lib/auth-middleware";
+import mongoose from "mongoose";
 
 // PUT - Update category
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const body = await request.json()
-    const { name, emoji, color } = body
-    const categoryId = Number.parseInt(params.id)
-
-    if (!name || !emoji || !color) {
-      return NextResponse.json({ success: false, error: "Name, emoji, and color are required" }, { status: 400 })
+    const { userId, error } = await verifyAuth(request);
+    if (error) {
+      return NextResponse.json({ error }, { status: 401 });
     }
 
-    const client = await clientPromise
-    const db = client.db("expense_tracker")
-
-    const updateData = {
-      name,
-      emoji,
-      color,
-      updatedAt: new Date(),
+    const id = params.id; // Corrected from `const { id } = params;`
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ error: "Invalid category ID" }, { status: 400 });
     }
 
-    const result = await db.collection("categories").updateOne({ id: categoryId }, { $set: updateData })
+    const body = await request.json();
+    const { name, emoji, color } = body;
 
-    if (result.matchedCount === 0) {
-      return NextResponse.json({ success: false, error: "Category not found" }, { status: 404 })
+    await connectDB();
+
+    const category = await Category.findOne({ _id: id, userId });
+    if (!category) {
+      return NextResponse.json({ error: "Category not found or unauthorized" }, { status: 404 });
     }
 
-    const updatedCategory = await db.collection<ICategory>("categories").findOne({ id: categoryId })
-    return NextResponse.json({ success: true, data: updatedCategory })
-  } catch (error) {
-    console.error("Error updating category:", error)
-    return NextResponse.json({ success: false, error: "Failed to update category" }, { status: 500 })
+    // Prevent duplicate names (for this user) if the name is being changed
+    if (name && name.trim() !== category.name) {
+      const existingCategory = await Category.findOne({ userId, name: name.trim() });
+      if (existingCategory) {
+        return NextResponse.json({ error: "Category with this name already exists" }, { status: 400 });
+      }
+    }
+
+    // Update fields
+    if (name !== undefined) category.name = name.trim();
+    if (emoji !== undefined) category.emoji = emoji;
+    if (color !== undefined) category.color = color;
+
+    await category.save();
+
+    return NextResponse.json({ message: "Category updated successfully", category }, { status: 200 });
+  } catch (err: unknown) {
+    console.error("PUT category error:", err);
+    return NextResponse.json({ error: (err instanceof Error ? err.message : "An unknown error occurred") || "Failed to update category" }, { status: 500 });
   }
 }
 
 // DELETE - Delete category
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const categoryId = Number.parseInt(params.id)
-
-    const client = await clientPromise
-    const db = client.db("expense_tracker")
-
-    const result = await db.collection("categories").deleteOne({ id: categoryId })
-
-    if (result.deletedCount === 0) {
-      return NextResponse.json({ success: false, error: "Category not found" }, { status: 404 })
+    const { userId, error } = await verifyAuth(request);
+    if (error) {
+      return NextResponse.json({ error }, { status: 401 });
     }
 
-    return NextResponse.json({ success: true, message: "Category deleted successfully" })
-  } catch (error) {
-    console.error("Error deleting category:", error)
-    return NextResponse.json({ success: false, error: "Failed to delete category" }, { status: 500 })
+    const id = params.id; // Corrected from `const { id } = params;`
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ error: "Invalid category ID" }, { status: 400 });
+    }
+
+    await connectDB();
+
+    const deletedCategory = await Category.findOneAndDelete({ _id: id, userId });
+    if (!deletedCategory) {
+      return NextResponse.json({ error: "Category not found or unauthorized" }, { status: 404 });
+    }
+
+    return NextResponse.json({ message: "Category deleted successfully" }, { status: 200 });
+  } catch (err: unknown) {
+    console.error("DELETE category error:", err);
+    return NextResponse.json({ error: (err instanceof Error ? err.message : "An unknown error occurred") || "Failed to delete category" }, { status: 500 });
   }
 }

@@ -1,195 +1,109 @@
-"use client"
-import { useState, useEffect } from "react"
-import AddCircleOutlineRoundedIcon from "@mui/icons-material/AddCircleOutlineRounded"
-import EmojiPicker, { type EmojiClickData } from "emoji-picker-react"
-import EditIcon from "@mui/icons-material/Edit"
-import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded"
-import AddCategoryModal from "../../components/AddCategoryModal"
-import { type ICategory, colorOptions } from "../../../models/Category"
-import { useToast } from "../../hooks/use-toast"
+"use client";
+import { useState } from "react";
+import AddCircleOutlineRoundedIcon from "@mui/icons-material/AddCircleOutlineRounded";
+import EmojiPicker, { type EmojiClickData } from "emoji-picker-react";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
+import AddCategoryModal from "../../components/AddCategoryModal";
+import { useCategories } from "../../hooks/use-categories";
+import { useExpenses } from "../../hooks/use-expenses";
+
+export const colorOptions = [
+  "#6366F1", "#EC4899", "#F59E0B", "#10B981", "#3B82F6",
+  "#8B5CF6", "#EF4444", "#14B8A6", "#F97316", "#06B6D4",
+  "#84CC16", "#A855F7",
+];
+
+interface Category {
+  _id: string;
+  name: string;
+  emoji: string;
+  color: string;
+}
+
+interface Expense {
+  _id: string;
+  description: string;
+  amount: number;
+  category: string;
+  date: string;
+  emoji: string;
+}
 
 export default function CategoriesPage() {
-  const { toast } = useToast()
-  const [categories, setCategories] = useState<ICategory[]>([])
-  const [loading, setLoading] = useState(true)
+  const { categories, isLoading, addCategory, updateCategory, deleteCategory } = useCategories();
+  const { expenses } = useExpenses() as { expenses: Expense[] };
 
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-  const [editingCategory, setEditingCategory] = useState<ICategory | null>(null)
-  const [editForm, setEditForm] = useState({ name: "", emoji: "", color: "" })
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
-  const [isModalOpen, setIsModalOpen] = useState(false)
-
-  useEffect(() => {
-    fetchCategories()
-  }, [])
-
-  const fetchCategories = async () => {
-    try {
-      setLoading(true)
-      const response = await fetch("/api/categories")
-      const result = await response.json()
-
-      if (result.success) {
-        setCategories(result.data)
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to fetch categories",
-          variant: "destructive",
-        })
-      }
-    } catch (error) {
-      console.error("Error fetching categories:", error)
-      toast({
-        title: "Error",
-        description: "Failed to fetch categories",
-        variant: "destructive",
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleAddCategory = async (newCategoryData: { name: string; emoji: string; color: string }) => {
-    try {
-      const response = await fetch("/api/categories", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(newCategoryData),
-      })
-
-      const result = await response.json()
-
-      if (result.success) {
-        setCategories([...categories, result.data])
-        toast({
-          title: "Success",
-          description: "Category added successfully!",
-        })
-      } else {
-        toast({
-          title: "Error",
-          description: result.error || "Failed to add category",
-          variant: "destructive",
-        })
-      }
-    } catch (error) {
-      console.error("Error adding category:", error)
-      toast({
-        title: "Error",
-        description: "Failed to add category",
-        variant: "destructive",
-      })
-    }
-  }
-
-  const handleEditCategory = (category: ICategory) => {
-    setEditingCategory(category)
-    setEditForm({ name: category.name, emoji: category.emoji, color: category.color })
-    setIsEditModalOpen(true)
-  }
-
-  const handleUpdateCategory = async () => {
-    if (editingCategory) {
-      try {
-        const response = await fetch(`/api/categories/${editingCategory.id}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(editForm),
-        })
-
-        const result = await response.json()
-
-        if (result.success) {
-          setCategories(categories.map((cat) => (cat.id === editingCategory.id ? result.data : cat)))
-          setIsEditModalOpen(false)
-          setEditingCategory(null)
-          toast({
-            title: "Success",
-            description: "Category updated successfully!",
-          })
-        } else {
-          toast({
-            title: "Error",
-            description: result.error || "Failed to update category",
-            variant: "destructive",
-          })
-        }
-      } catch (error) {
-        console.error("Error updating category:", error)
-        toast({
-          title: "Error",
-          description: "Failed to update category",
-          variant: "destructive",
-        })
-      }
-    }
-  }
-
-  const handleDeleteCategory = async (categoryId: string) => {
-    try {
-      const response = await fetch(`/api/categories/${categoryId}`, {
-        method: "DELETE",
-      })
-
-      const result = await response.json()
-
-      if (result.success) {
-        setCategories(categories.filter((cat) => cat.id.toString() !== categoryId.toString()))
-        toast({
-          title: "Success",
-          description: "Category deleted successfully!",
-        })
-      } else {
-        toast({
-          title: "Error",
-          description: result.error || "Failed to delete category",
-          variant: "destructive",
-        })
-      }
-    } catch (error) {
-      console.error("Error deleting category:", error)
-      toast({
-        title: "Error",
-        description: "Failed to delete category",
-        variant: "destructive",
-      })
-    }
-  }
-
-  const handleEmojiSelect = (emojiData: EmojiClickData) => {
-    setEditForm({ ...editForm, emoji: emojiData.emoji })
-    setShowEmojiPicker(false)
-  }
+  const totalCategories = categories.length;
+  const totalExpenses = expenses.length;
+  const totalAmount = expenses.reduce((sum, exp) => sum + exp.amount, 0);
 
   const cards = [
-    { title: "Total Categories", value: categories.length.toString(), desc: "Active categories" },
-    {
-      title: "Total Expenses",
-      value: categories.reduce((sum, cat) => sum + cat.expenses, 0).toString(),
-      desc: "Across all categories",
-    },
-    {
-      title: "Total Amount",
-      value: `$${categories.reduce((sum, cat) => sum + cat.totalSpent, 0).toFixed(2)}`,
-      desc: "All time spending",
-    },
-  ]
+    { title: "Total Categories", value: totalCategories.toString(), desc: "Active categories" },
+    { title: "Total Expenses", value: totalExpenses.toString(), desc: "Across all categories" },
+    { title: "Total Amount", value: `$${totalAmount.toFixed(2)}`, desc: "All time spending" },
+  ];
 
-  if (loading) {
-    return (
-      <div className="p-6 flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading categories...</p>
-        </div>
-      </div>
-    )
-  }
+   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [editForm, setEditForm] = useState({ name: "", emoji: "", color: "" });
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+   const handleAddCategory = async (newCategoryData: { name: string; emoji: string; color: string }) => {
+    try {
+      await addCategory(newCategoryData);
+      setIsModalOpen(false);
+    } catch (err: unknown) { // Corrected
+      alert((err as Error).message || "Failed to add category"); // Corrected
+    }
+  };
+
+   const handleEditCategory = (category: Category) => {
+    setEditingCategory(category);
+    setEditForm({ name: category.name, emoji: category.emoji, color: category.color });
+    setIsEditModalOpen(true);
+  };
+
+   const handleUpdateCategory = async () => {
+    if (editingCategory) {
+      try {
+        await updateCategory(editingCategory._id, editForm);
+        setIsEditModalOpen(false);
+        setEditingCategory(null);
+      } catch (err: unknown) { // Corrected
+        alert((err as Error).message || "Failed to update category"); // Corrected
+      }
+    }
+  };
+
+  const handleDeleteCategory = async (categoryId: string) => {
+    if (confirm("Are you sure you want to delete this category?")) {
+      try {
+        await deleteCategory(categoryId);
+      } catch (err: unknown) { // Corrected
+        alert((err as Error).message || "Failed to delete category"); // Corrected
+      }
+    }
+  };
+
+  const handleEmojiSelect = (emojiData: EmojiClickData) => {
+    setEditForm({ ...editForm, emoji: emojiData.emoji });
+    setShowEmojiPicker(false);
+  };
+
+  const categoriesWithStats = categories.map((category) => {
+    const categoryExpenses = expenses.filter((exp: Expense) => exp.category === category.name);
+    const categoryTotal = categoryExpenses.reduce((sum, exp: Expense) => sum + exp.amount, 0);
+    const percentage = totalAmount > 0 ? (categoryTotal / totalAmount) * 100 : 0;
+
+    return {
+      ...category,
+      expenses: categoryExpenses.length,
+      totalSpent: categoryTotal,
+      percentage: percentage.toFixed(1),
+    };
+  });
 
   return (
     <div className="p-6">
@@ -207,7 +121,7 @@ export default function CategoriesPage() {
         </button>
       </div>
 
-      {/* Cards Section */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {cards.map((card) => (
           <div key={card.title} className="bg-white p-6 rounded-xl shadow-sm">
@@ -218,48 +132,54 @@ export default function CategoriesPage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {categories.map((category) => (
-          <div key={category.id} className="bg-white p-6 rounded-xl shadow-sm relative group">
-            {/* Edit/Delete buttons */}
-            <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button onClick={() => handleEditCategory(category)} className="text-gray-400 hover:text-blue-600 mr-2">
-                <EditIcon />
-              </button>
-              <button onClick={() => handleDeleteCategory(category.id.toString())} className="text-gray-400 hover:text-red-600">
-                <DeleteRoundedIcon />
-              </button>
-            </div>
+      {isLoading ? (
+        <div className="text-center text-gray-500 py-8">Loading categories...</div>
+      ) : categoriesWithStats.length === 0 ? (
+        <div className="text-center text-gray-500 py-8">No categories yet. Add your first category!</div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {categoriesWithStats.map((category) => (
+            <div key={category._id} className="bg-white p-6 rounded-xl shadow-sm relative group">
+              {/* Edit/Delete */}
+              <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button onClick={() => handleEditCategory(category)} className="text-gray-400 hover:text-blue-600 mr-2">
+                  <EditIcon />
+                </button>
+                <button onClick={() => handleDeleteCategory(category._id)} className="text-gray-400 hover:text-red-600">
+                  <DeleteRoundedIcon />
+                </button>
+              </div>
 
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-xl">
-                {category.emoji}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-xl">
+                  {category.emoji}
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg">{category.name}</h3>
+                  <p className="text-sm text-gray-500">{category.expenses} expenses</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold text-lg">{category.name}</h3>
-                <p className="text-sm text-gray-500">{category.expenses} expenses</p>
-              </div>
-            </div>
 
-            <div className="mb-3">
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-sm text-gray-600">Total Spent</span>
-                <span className="font-bold text-lg">${category.totalSpent}</span>
+              <div className="mb-3">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-sm text-gray-600">Total Spent</span>
+                  <span className="font-bold text-lg">${category.totalSpent.toFixed(2)}</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="h-2 rounded-full"
+                    style={{
+                      backgroundColor: category.color,
+                      width: `${Math.min(Number(category.percentage), 100)}%`,
+                    }}
+                  ></div>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">{category.percentage}% of total spending</p>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="h-2 rounded-full"
-                  style={{
-                    backgroundColor: category.color,
-                    width: `${Math.min(category.percentage, 100)}%`,
-                  }}
-                ></div>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">{category.percentage}% of total spending</p>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       <AddCategoryModal
         isOpen={isModalOpen}
@@ -286,14 +206,14 @@ export default function CategoriesPage() {
                 type="text"
                 value={editForm.name}
                 onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                className="w-full p-3 border rounded-lg"
+                className="w-full p-3 rounded-lg border border-gray-300"
               />
             </div>
 
             <div className="mb-4">
               <label className="block text-sm font-medium mb-2">Emoji</label>
               <div
-                className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50"
+                className="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-50 border border-gray-300"
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
               >
                 <span className="text-2xl">{editForm.emoji || "😀"}</span>
@@ -313,8 +233,8 @@ export default function CategoriesPage() {
                   <button
                     key={color}
                     onClick={() => setEditForm({ ...editForm, color })}
-                    className={`w-8 h-8 rounded-full border-2 ${
-                      editForm.color === color ? "border-gray-800" : "border-transparent"
+                    className={`w-8 h-8 rounded-full ${
+                      editForm.color === color ? "ring-2 ring-offset-2 ring-blue-500" : ""
                     }`}
                     style={{ backgroundColor: color }}
                   />
@@ -325,7 +245,7 @@ export default function CategoriesPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => setIsEditModalOpen(false)}
-                className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
+                className="flex-1 px-4 py-2 rounded-lg hover:bg-gray-50 border border-gray-300"
               >
                 Cancel
               </button>
@@ -340,5 +260,5 @@ export default function CategoriesPage() {
         </div>
       )}
     </div>
-  )
+  );
 }

@@ -1,62 +1,65 @@
-import { type NextRequest, NextResponse } from "next/server"
-import clientPromise from "@/lib/mongodb"
-import { type ICategory, generateCategoryId } from "../../../models/Category"
+import { NextResponse, type NextRequest } from "next/server";
+import { connectDB } from "@/lib/mongodb";
+import Category from "@/models/Category";
+import { verifyAuth } from "@/lib/auth-middleware";
+import mongoose from "mongoose"; // Unused in this file, but harmless
 
-// GET - Fetch all categories
-export async function GET() {
+// GET - Fetch all categories for authenticated user
+export async function GET(request: NextRequest) {
   try {
-    const client = await clientPromise
-    const db = client.db("expense_tracker")
-    const categories = await db.collection<ICategory>("categories").find({}).toArray()
+    const { userId, error } = await verifyAuth(request);
+    if (error) {
+      return NextResponse.json({ error }, { status: 401 });
+    }
 
-    return NextResponse.json({ success: true, data: categories })
-  } catch (error) {
-    console.error("Error fetching categories:", error)
-    return NextResponse.json({ success: false, error: "Failed to fetch categories" }, { status: 500 })
+    await connectDB();
+
+    // Fetch categories sorted by creation date
+    const categories = await Category.find({ userId }).sort({ createdAt: -1 }).lean();
+
+    return NextResponse.json({ categories }, { status: 200 });
+  } catch (err: unknown) {
+    console.error("GET categories error:", err);
+    return NextResponse.json({ error: (err instanceof Error ? err.message : "An unknown error occurred") || "Failed to fetch categories" }, { status: 500 });
   }
 }
 
 // POST - Create new category
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { name, emoji, color } = body
-
-    if (!name || !emoji || !color) {
-      return NextResponse.json({ success: false, error: "Name, emoji, and color are required" }, { status: 400 })
+    const { userId, error } = await verifyAuth(request);
+    if (error) {
+      return NextResponse.json({ error }, { status: 401 });
     }
 
-    const client = await clientPromise
-    const db = client.db("expense_tracker")
+    const body = await request.json();
+    const { name, emoji, color } = body;
 
-    // Get existing categories to generate new ID
-    const existingCategories = await db.collection<ICategory>("categories").find({}).toArray()
-    const newId = parseInt(generateCategoryId(existingCategories))
-
-    // Use ICategory interface instead of Category type
-    const newCategory: ICategory = {
-      id: newId,
-      name,
-      emoji,
-      color,
-      expenses: 0,
-      totalSpent: 0,
-      percentage: 0,
-      userId: "temp-user-id", // You'll need to get this from auth context
-      createdAt: new Date(),
-      updatedAt: new Date(),
+    if (!name || !name.trim()) {
+      return NextResponse.json({ error: "Category name is required" }, { status: 400 });
     }
 
-    const result = await db.collection("categories").insertOne(newCategory)
+    await connectDB();
 
-    if (result.insertedId) {
-      const insertedCategory = await db.collection<ICategory>("categories").findOne({ _id: result.insertedId })
-      return NextResponse.json({ success: true, data: insertedCategory })
-    } else {
-      throw new Error("Failed to insert category")
+    // Prevent duplicate category names (for this user)
+    const existingCategory = await Category.findOne({ userId, name: name.trim() });
+    if (existingCategory) {
+      return NextResponse.json({ error: "Category with this name already exists" }, { status: 400 });
     }
-  } catch (error) {
-    console.error("Error creating category:", error)
-    return NextResponse.json({ success: false, error: "Failed to create category" }, { status: 500 })
+
+    const newCategory = await Category.create({
+      userId,
+      name: name.trim(),
+      emoji: emoji || "📝",
+      color: color || "#6366F1",
+    });
+
+    return NextResponse.json(
+      { message: "Category created successfully", category: newCategory },
+      { status: 201 }
+    );
+  } catch (err: unknown) {
+    console.error("POST category error:", err);
+    return NextResponse.json({ error: (err instanceof Error ? err.message : "An unknown error occurred") || "Failed to create category" }, { status: 500 });
   }
 }

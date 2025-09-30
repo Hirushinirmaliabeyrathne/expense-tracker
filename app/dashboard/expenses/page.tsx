@@ -1,110 +1,22 @@
 "use client"
 import { useState } from "react"
-import { FilterList, Search, Edit, Delete } from "@mui/icons-material"
+import { Search, Edit, Delete } from "@mui/icons-material"
+import { useExpenses } from "../../hooks/use-expenses"
+import { useCategories } from "../../hooks/use-categories"
 
 interface Expense {
-  id: number
+  _id: string
   description: string
   amount: number
   category: string
   date: string
-  time: string
-  icon: string
+  emoji: string
 }
 
 export default function ExpensesPage() {
-  const [expenses, setExpenses] = useState<Expense[]>([
-    {
-      id: 1,
-      description: "Lunch at Italian restaurant",
-      amount: 45.5,
-      category: "Food",
-      date: "January 15th, 2024",
-      time: "6:00 PM",
-      icon: "🍽️",
-    },
-    {
-      id: 2,
-      description: "Gas for car",
-      amount: 120.0,
-      category: "Transportation",
-      date: "January 14th, 2024",
-      time: "1:45 PM",
-      icon: "🚗",
-    },
-    {
-      id: 3,
-      description: "Movie tickets",
-      amount: 25.99,
-      category: "Entertainment",
-      date: "January 13th, 2024",
-      time: "8:30 PM",
-      icon: "🎬",
-    },
-    {
-      id: 4,
-      description: "Grocery shopping",
-      amount: 89.99,
-      category: "Food",
-      date: "January 12th, 2024",
-      time: "3:15 PM",
-      icon: "🛒",
-    },
-    {
-      id: 5,
-      description: "Coffee",
-      amount: 15.5,
-      category: "Food",
-      date: "January 11th, 2024",
-      time: "9:00 AM",
-      icon: "☕",
-    },
-    {
-      id: 6,
-      description: "Uber ride",
-      amount: 18.75,
-      category: "Transportation",
-      date: "January 10th, 2024",
-      time: "7:30 PM",
-      icon: "🚕",
-    },
-    {
-      id: 7,
-      description: "Netflix subscription",
-      amount: 15.99,
-      category: "Entertainment",
-      date: "January 9th, 2024",
-      time: "12:00 PM",
-      icon: "📺",
-    },
-    {
-      id: 8,
-      description: "Pharmacy",
-      amount: 32.45,
-      category: "Healthcare",
-      date: "January 8th, 2024",
-      time: "4:20 PM",
-      icon: "💊",
-    },
-    {
-      id: 9,
-      description: "Electricity bill",
-      amount: 85.0,
-      category: "Utilities",
-      date: "January 7th, 2024",
-      time: "10:00 AM",
-      icon: "💡",
-    },
-    {
-      id: 10,
-      description: "New shoes",
-      amount: 79.99,
-      category: "Shopping",
-      date: "January 6th, 2024",
-      time: "2:45 PM",
-      icon: "👟",
-    },
-  ])
+  // Fix: Change 'loading' to 'isLoading'
+  const { expenses, isLoading, updateExpense, deleteExpense } = useExpenses()
+  const { categories } = useCategories()
 
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("All")
@@ -134,33 +46,29 @@ export default function ExpensesPage() {
       amount: expense.amount.toString(),
       category: expense.category,
       description: expense.description,
-      date: expense.date,
+      date: new Date(expense.date).toISOString().split("T")[0],
     })
     setIsEditModalOpen(true)
   }
 
-  const handleUpdateExpense = () => {
+  const handleUpdateExpense = async () => {
     if (editingExpense) {
-      setExpenses(
-        expenses.map((expense) =>
-          expense.id === editingExpense.id
-            ? {
-                ...expense,
-                amount: Number.parseFloat(editForm.amount),
-                category: editForm.category,
-                description: editForm.description,
-                date: editForm.date,
-              }
-            : expense,
-        ),
-      )
+      await updateExpense(editingExpense._id, {
+        amount: Number.parseFloat(editForm.amount),
+        category: editForm.category,
+        description: editForm.description,
+        date: editForm.date,
+        emoji: editingExpense.emoji,
+      })
       setIsEditModalOpen(false)
       setEditingExpense(null)
     }
   }
 
-  const handleDeleteExpense = (id: number) => {
-    setExpenses(expenses.filter((expense) => expense.id !== id))
+  const handleDeleteExpense = async (id: string) => {
+    if (confirm("Are you sure you want to delete this expense?")) {
+      await deleteExpense(id)
+    }
   }
 
   const handleClearFilters = () => {
@@ -169,6 +77,8 @@ export default function ExpensesPage() {
     setDateRange("All Time")
     setSortBy("Date (Newest)")
   }
+
+  const uniqueCategories = ["All", ...Array.from(new Set(categories.map((cat) => cat.name)))]
 
   return (
     <div className="p-6">
@@ -182,7 +92,6 @@ export default function ExpensesPage() {
       </div>
 
       <div className="bg-white border border-gray-200 rounded-lg shadow-sm mb-6">
-
         <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div>
@@ -205,13 +114,11 @@ export default function ExpensesPage() {
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="All">All</option>
-                <option value="Food">Food</option>
-                <option value="Transportation">Transportation</option>
-                <option value="Entertainment">Entertainment</option>
-                <option value="Shopping">Shopping</option>
-                <option value="Healthcare">Healthcare</option>
-                <option value="Utilities">Utilities</option>
+                {uniqueCategories.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
@@ -288,46 +195,50 @@ export default function ExpensesPage() {
           </p>
         </div>
         <div className="p-6">
-          <div className="space-y-4">
-            {filteredExpenses.map((expense) => (
-              <div
-                key={expense.id}
-                className="flex items-center justify-between p-4 rounded-lg border hover:bg-gray-50 transition-colors group"
-              >
-                <div className="flex items-center gap-4">
-                  <span className="text-2xl">{expense.icon}</span>
-                  <div>
-                    <div className="font-medium">{expense.description}</div>
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
-                        {expense.category}
-                      </span>
-                      <span>
-                        {expense.date} • {expense.time}
-                      </span>
+          {isLoading ? ( // Fix: Use isLoading here
+            <div className="text-center text-gray-500 py-8">Loading expenses...</div>
+          ) : filteredExpenses.length === 0 ? (
+            <div className="text-center text-gray-500 py-8">No expenses found. Try adjusting your filters.</div>
+          ) : (
+            <div className="space-y-4">
+              {filteredExpenses.map((expense) => (
+                <div
+                  key={expense._id}
+                  className="flex items-center justify-between p-4 rounded-lg border hover:bg-gray-50 transition-colors group"
+                >
+                  <div className="flex items-center gap-4">
+                    <span className="text-2xl">{expense.emoji}</span>
+                    <div>
+                      <div className="font-medium">{expense.description}</div>
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                          {expense.category}
+                        </span>
+                        <span>{new Date(expense.date).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg font-semibold">${expense.amount.toFixed(2)}</span>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div
+                        onClick={() => handleEditExpense(expense)}
+                        className="p-2 hover:bg-gray-100 rounded cursor-pointer transition-colors"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </div>
+                      <div
+                        onClick={() => handleDeleteExpense(expense._id)}
+                        className="p-2 hover:bg-gray-100 rounded cursor-pointer transition-colors text-red-600 hover:text-red-700"
+                      >
+                        <Delete className="w-4 h-4" />
+                      </div>
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-lg font-semibold">${expense.amount.toFixed(2)}</span>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div
-                      onClick={() => handleEditExpense(expense)}
-                      className="p-2 hover:bg-gray-100 rounded cursor-pointer transition-colors"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </div>
-                    <div
-                      onClick={() => handleDeleteExpense(expense.id)}
-                      className="p-2 hover:bg-gray-100 rounded cursor-pointer transition-colors text-red-600 hover:text-red-700"
-                    >
-                      <Delete className="w-4 h-4" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -367,12 +278,11 @@ export default function ExpensesPage() {
                     onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    <option value="Food">Food</option>
-                    <option value="Transportation">Transportation</option>
-                    <option value="Entertainment">Entertainment</option>
-                    <option value="Shopping">Shopping</option>
-                    <option value="Healthcare">Healthcare</option>
-                    <option value="Utilities">Utilities</option>
+                    {categories.map((cat) => (
+                      <option key={cat._id} value={cat.name}>
+                        {cat.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>

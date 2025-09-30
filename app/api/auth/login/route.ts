@@ -37,10 +37,10 @@ export async function POST(req: Request) {
       token,
       user: {
         id: user._id,
-        firstName: user.firstName, // Added firstName
-        lastName: user.lastName,   // Added lastName
+        firstName: user.firstName, 
+        lastName: user.lastName,
         email: user.email,
-        profileImage: user.profileImage || "", // Added profileImage
+        profileImage: user.profileImage || "",
       },
     });
   } catch (error) {

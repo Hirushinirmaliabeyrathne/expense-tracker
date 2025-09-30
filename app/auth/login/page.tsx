@@ -1,38 +1,39 @@
-// LoginForm.tsx
-"use client";
+"use client"
 
-import { useState } from "react";
-import type React from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useState } from "react"
+import type React from "react"
+import Link from "next/link"
+import Image from "next/image"
+import { useRouter } from "next/navigation"
 
 export default function LoginForm() {
-  const [showForgot, setShowForgot] = useState(false);
-  const [formData, setFormData] = useState({ email: "", password: "" });
-  const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
+  const [showForgot, setShowForgot] = useState(false)
+  const [formData, setFormData] = useState({ email: "", password: "" })
+  const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+    const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
+    e.preventDefault()
+    setIsLoading(true)
 
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
-      });
+      })
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Login failed");
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Login failed")
 
-      alert("Login successful!");
+      alert("Login successful!")
+
+      localStorage.setItem("authToken", data.token)
 
       // Save user profile data to localStorage
       const userProfileToSave = {
@@ -40,34 +41,28 @@ export default function LoginForm() {
         lastName: data.user.lastName || "",
         email: data.user.email || formData.email,
         profileImage: data.user.profileImage || "",
-      };
-      localStorage.setItem("userProfile", JSON.stringify(userProfileToSave));
-
-      router.push("/dashboard");
-    } catch (err: unknown) { // Corrected type
-      let errorMessage = "Something went wrong.";
-      if (err instanceof Error) {
-        errorMessage = err.message;
-      } else if (typeof err === "object" && err !== null && "error" in err) {
-        errorMessage = (err as { error: string }).error;
       }
-      alert(errorMessage);
+      localStorage.setItem("userProfile", JSON.stringify(userProfileToSave))
+
+      router.push("/dashboard")
+    } catch (err: unknown) {
+      let errorMessage = "Something went wrong."
+      if (err instanceof Error) {
+        errorMessage = err.message
+      } else if (typeof err === "object" && err !== null && "error" in err) {
+        errorMessage = (err as { error: string }).error
+      }
+      alert(errorMessage)
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 min-h-screen">
       {/* Left Section - Image */}
       <section className="relative hidden md:block">
-        <Image
-          src="/image/login.jpg"
-          alt="Login"
-          fill
-          className="object-cover"
-          priority
-        />
+        <Image src="/image/login.jpg" alt="Login" fill className="object-cover" priority />
       </section>
 
       {/* Right Section - Login Form */}
@@ -98,11 +93,7 @@ export default function LoginForm() {
               required
             />
             <div className="text-right">
-              <button
-                type="button"
-                onClick={() => setShowForgot(true)}
-                className="text-sm text-[#001571] underline"
-              >
+              <button type="button" onClick={() => setShowForgot(true)} className="text-sm text-[#001571] underline">
                 Forgot Password?
               </button>
             </div>
@@ -131,10 +122,7 @@ export default function LoginForm() {
           {/* Footer */}
           <p className="text-center text-sm mt-6">
             Don&apos;t have an account?{" "}
-            <Link
-              href="/auth/signup"
-              className="text-[#001571] underline hover:text-blue-900"
-            >
+            <Link href="/auth/signup" className="text-[#001571] underline hover:text-blue-900">
               Signup here
             </Link>
           </p>
@@ -166,5 +154,5 @@ export default function LoginForm() {
         </div>
       )}
     </div>
-  );
+  )
 }
