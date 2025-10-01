@@ -2,16 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { categoryAPI } from "@/lib/api-client"
+import { Category } from "../types"
 
-export interface Category {
-  _id: string
-  userId: string // Should be mongoose.Types.ObjectId in backend, but string for client interface is fine if that's how it's sent
-  name: string
-  emoji: string
-  color: string
-  createdAt: string
-  updatedAt: string
-}
+
 
 export function useCategories() {
   const [categories, setCategories] = useState<Category[]>([])
@@ -24,7 +17,7 @@ export function useCategories() {
       setError(null)
       const data = await categoryAPI.getAll()
       setCategories(data.categories || [])
-    } catch (err) { // err is 'unknown'
+    } catch (err) { 
       setError(err instanceof Error ? err.message : "Failed to fetch categories")
       console.error("Error fetching categories:", err)
     } finally {
@@ -37,7 +30,7 @@ export function useCategories() {
       const data = await categoryAPI.create(category)
       setCategories((prev) => [data.category, ...prev])
       return data.category
-    } catch (err) { // err is 'unknown'
+    } catch (err) { 
       throw err
     }
   }
@@ -47,7 +40,7 @@ export function useCategories() {
       const data = await categoryAPI.update(id, updates)
       setCategories((prev) => prev.map((cat) => (cat._id === id ? data.category : cat)))
       return data.category
-    } catch (err) { // err is 'unknown'
+    } catch (err) { 
       throw err
     }
   }
@@ -56,14 +49,14 @@ export function useCategories() {
     try {
       await categoryAPI.delete(id)
       setCategories((prev) => prev.filter((cat) => cat._id !== id))
-    } catch (err) { // err is 'unknown'
+    } catch (err) { 
       throw err
     }
   }
 
   useEffect(() => {
     fetchCategories()
-  }, []) // Empty dependency array means this runs once on mount
+  }, []) 
 
   return {
     categories,

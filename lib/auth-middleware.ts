@@ -10,10 +10,6 @@ export interface JWTPayload {
   email: string
 }
 
-/**
- * Middleware to verify JWT token and extract user ID
- * Usage: const { userId, error } = await verifyAuth(request)
- */
 export async function verifyAuth(request: NextRequest): Promise<{
   userId: string | null
   error: NextResponse | null
@@ -28,7 +24,7 @@ export async function verifyAuth(request: NextRequest): Promise<{
       }
     }
 
-    const token = authHeader.substring(7) // Remove 'Bearer ' prefix
+    const token = authHeader.substring(7) 
 
     if (!process.env.JWT_SECRET) {
       console.error("JWT_SECRET is not defined")

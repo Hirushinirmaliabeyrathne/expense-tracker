@@ -8,8 +8,8 @@ interface AddExpenseModalProps {
   isOpen: boolean
   onClose: () => void
   onAddExpense: (expense: ExpenseData) => Promise<void>
-  categories: Array<{ name: string; color?: string }> // Include color for consistency with useCategories
-  onAddCategory: (categoryName: string) => Promise<void> // New prop for adding categories
+  categories: Array<{ name: string; color?: string }> 
+  onAddCategory: (categoryName: string) => Promise<void> 
 }
 
 export interface ExpenseData {
@@ -36,24 +36,24 @@ export default function AddExpenseModal({
   })
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [newCategoryInput, setNewCategoryInput] = useState("") // State for the text input for new categories
-  const emojiPickerRef = useRef<HTMLDivElement>(null) // Ref for emoji picker to detect clicks outside
+  const [newCategoryInput, setNewCategoryInput] = useState("") 
+  const emojiPickerRef = useRef<HTMLDivElement>(null) 
 
-  // Reset form data and category input when modal opens
+ 
   useEffect(() => {
     if (isOpen) {
       setFormData({
         amount: 0,
         date: new Date().toISOString().split("T")[0],
         category: "",
-        emoji: "💰",
+        emoji: "",
         description: "",
       })
-      setNewCategoryInput("") // Clear new category input on open
+      setNewCategoryInput("") 
     }
   }, [isOpen])
 
-  // Effect to close emoji picker when clicking outside
+  
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
@@ -70,25 +70,21 @@ export default function AddExpenseModal({
     }
   }, [showEmojiPicker])
 
-  // Handles change from the <select> dropdown
+ 
   const handleSelectCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value
     setFormData((prev) => ({ ...prev, category: value }))
-    setNewCategoryInput(value) // Also update the text input to reflect selection
+    setNewCategoryInput(value) 
   }
 
-  // Handles change from the <input type="text"> for new categories
   const handleNewCategoryInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
     setNewCategoryInput(value)
-    // If the user types, it clears the selected category from the dropdown conceptually
-    // However, formData.category is the one sent, so we update it here if it's a new input.
-    // If the typed value matches an existing category, we set formData.category to that existing one.
     const existingCategory = categories.find(cat => cat.name.toLowerCase() === value.toLowerCase());
     if (existingCategory) {
         setFormData((prev) => ({ ...prev, category: existingCategory.name }));
     } else {
-        setFormData((prev) => ({ ...prev, category: value })); // Set formData.category to the typed value
+        setFormData((prev) => ({ ...prev, category: value })); 
     }
   }
 
@@ -98,8 +94,8 @@ export default function AddExpenseModal({
       setIsSubmitting(true)
       try {
         await onAddCategory(newCategoryInput.trim())
-        setFormData((prev) => ({ ...prev, category: newCategoryInput.trim() })) // Set the newly added category
-        // No need to clear newCategoryInput, it should reflect the now-selected new category
+        setFormData((prev) => ({ ...prev, category: newCategoryInput.trim() })) 
+    
       } catch (error) {
         console.error("Failed to add new category:", error)
         alert("Failed to add category. Please try again.")
@@ -114,24 +110,20 @@ export default function AddExpenseModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Final check for category before submitting the expense
     let finalCategory = formData.category.trim();
 
-    // If the user typed a new category in the input field but didn't click "Add"
-    // and it doesn't exist, we'll try to add it now as part of the expense submission.
     if (newCategoryInput.trim() && !categories.some(cat => cat.name.toLowerCase() === newCategoryInput.trim().toLowerCase())) {
-      setIsSubmitting(true); // Indicate submission in progress
+      setIsSubmitting(true); 
       try {
-        await onAddCategory(newCategoryInput.trim()); // Add the new category
-        finalCategory = newCategoryInput.trim(); // Use the newly added category
+        await onAddCategory(newCategoryInput.trim()); 
+        finalCategory = newCategoryInput.trim(); 
       } catch (error) {
         console.error("Failed to add new category during expense submission:", error);
         alert("Failed to add category and expense. Please try again.");
         setIsSubmitting(false);
-        return; // Stop submission if category addition fails
+        return; 
       }
     } else if (newCategoryInput.trim() && categories.some(cat => cat.name.toLowerCase() === newCategoryInput.trim().toLowerCase())) {
-        // If they typed an existing category, ensure finalCategory reflects the canonical name if needed
         finalCategory = categories.find(cat => cat.name.toLowerCase() === newCategoryInput.trim().toLowerCase())?.name || finalCategory;
     }
 
@@ -139,16 +131,15 @@ export default function AddExpenseModal({
     if (formData.amount > 0 && finalCategory && formData.description.trim()) {
       try {
         setIsSubmitting(true)
-        await onAddExpense({ ...formData, category: finalCategory }) // Use the potentially updated finalCategory
-        // Reset form after successful submission
+        await onAddExpense({ ...formData, category: finalCategory }) 
         setFormData({
           amount: 0,
           date: new Date().toISOString().split("T")[0],
           category: "",
-          emoji: "💰",
+          emoji: "",
           description: "",
         })
-        setNewCategoryInput("") // Clear category input
+        setNewCategoryInput("") 
         onClose()
       } catch (error) {
         console.error("Failed to add expense:", error)

@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { connectDB } from "@/lib/mongodb";
-import Category from "@/models/Category";
-import { verifyAuth } from "@/lib/auth-middleware";
-import mongoose from "mongoose"; // Unused in this file, but harmless
+import { connectDB } from "../../../lib/mongodb";
+import Category from "../../../models/Category";
+import { verifyAuth } from "../../../lib/auth-middleware";
+
 
 // GET - Fetch all categories for authenticated user
 export async function GET(request: NextRequest) {
@@ -14,7 +14,6 @@ export async function GET(request: NextRequest) {
 
     await connectDB();
 
-    // Fetch categories sorted by creation date
     const categories = await Category.find({ userId }).sort({ createdAt: -1 }).lean();
 
     return NextResponse.json({ categories }, { status: 200 });

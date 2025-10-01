@@ -24,10 +24,10 @@ export default function AddCategoryModal({ isOpen, onClose, onAddCategory, color
       try {
         setIsSubmitting(true);
         await onAddCategory(form);
-        setForm({ name: "", emoji: "📝", color: "#6366F1" }); // Reset form
+        setForm({ name: "", emoji: "📝", color: "#6366F1" }); 
         setShowEmojiPicker(false);
         onClose();
-      } catch (error) { // error is already of type 'unknown' here
+      } catch (error) { 
         console.error("Failed to add category:", error);
         alert("Failed to add category. Please try again.");
       } finally {
@@ -37,7 +37,7 @@ export default function AddCategoryModal({ isOpen, onClose, onAddCategory, color
   };
 
  const handleCancel = () => {
-    setForm({ name: "", emoji: "📝", color: "#6366F1" }); // Reset form
+    setForm({ name: "", emoji: "📝", color: "#6366F1" }); 
     setShowEmojiPicker(false);
     onClose();
   };

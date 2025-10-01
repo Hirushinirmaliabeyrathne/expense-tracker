@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
-import { connectDB } from "@/lib/mongodb"
-import Expense from "@/models/Expense"
-import { verifyAuth } from "@/lib/auth-middleware"
+import { connectDB } from "../../../lib/mongodb"
+import Expense from "../../../models/Expense"
+import { verifyAuth } from "../../../lib/auth-middleware"
 
 // GET - Fetch all expenses for authenticated user
 export async function GET(request: NextRequest) {
@@ -10,8 +10,6 @@ export async function GET(request: NextRequest) {
     if (error) return error
 
     await connectDB()
-
-    // Fetch expenses sorted by date (newest first)
     const expenses = await Expense.find({ userId }).sort({ date: -1, createdAt: -1 }).lean()
 
     return NextResponse.json({ expenses }, { status: 200 })
@@ -30,7 +28,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { amount, date, category, emoji, description } = body
 
-    // Validation
     if (!amount || !date || !category || !description) {
       return NextResponse.json({ error: "All fields are required" }, { status: 400 })
     }

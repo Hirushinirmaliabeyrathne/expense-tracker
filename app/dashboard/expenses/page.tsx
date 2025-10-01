@@ -14,10 +14,8 @@ interface Expense {
 }
 
 export default function ExpensesPage() {
-  // Fix: Change 'loading' to 'isLoading'
   const { expenses, isLoading, updateExpense, deleteExpense } = useExpenses()
   const { categories } = useCategories()
-
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("All")
   const [dateRange, setDateRange] = useState("All Time")

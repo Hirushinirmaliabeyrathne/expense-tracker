@@ -2,18 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { expenseAPI } from "@/lib/api-client"
+import { Expense } from "../types"
 
-export interface Expense {
-  _id: string
-  userId: string
-  amount: number
-  date: string
-  category: string
-  emoji: string
-  description: string
-  createdAt: string
-  updatedAt: string
-}
 
 export function useExpenses() {
   const [expenses, setExpenses] = useState<Expense[]>([])

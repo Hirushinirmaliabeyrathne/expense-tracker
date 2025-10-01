@@ -7,6 +7,7 @@ import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
 import AddCategoryModal from "../../components/AddCategoryModal";
 import { useCategories } from "../../hooks/use-categories";
 import { useExpenses } from "../../hooks/use-expenses";
+import { Category, Expense } from "../../types";
 
 export const colorOptions = [
   "#6366F1", "#EC4899", "#F59E0B", "#10B981", "#3B82F6",
@@ -14,21 +15,6 @@ export const colorOptions = [
   "#84CC16", "#A855F7",
 ];
 
-interface Category {
-  _id: string;
-  name: string;
-  emoji: string;
-  color: string;
-}
-
-interface Expense {
-  _id: string;
-  description: string;
-  amount: number;
-  category: string;
-  date: string;
-  emoji: string;
-}
 
 export default function CategoriesPage() {
   const { categories, isLoading, addCategory, updateCategory, deleteCategory } = useCategories();

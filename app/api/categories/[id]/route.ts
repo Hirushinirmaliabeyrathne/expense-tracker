@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { connectDB } from "@/lib/mongodb";
-import Category from "@/models/Category";
-import { verifyAuth } from "@/lib/auth-middleware";
+import { connectDB } from "../../../../lib/mongodb";
+import Category from "../../../../models/Category";
+import { verifyAuth } from "../../../../lib/auth-middleware";
 import mongoose from "mongoose";
 
 // PUT - Update category
@@ -12,7 +12,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error }, { status: 401 });
     }
 
-    const id = params.id; // Corrected from `const { id } = params;`
+    const id = params.id; 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ error: "Invalid category ID" }, { status: 400 });
     }

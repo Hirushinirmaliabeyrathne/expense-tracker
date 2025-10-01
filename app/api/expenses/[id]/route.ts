@@ -1,16 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server"
-import { connectDB } from "@/lib/mongodb"
-import Expense from "@/models/Expense"
-import { verifyAuth } from "@/lib/auth-middleware"
+import { connectDB } from "../../../../lib/mongodb"
+import Expense from "../../../../models/Expense"
+import { verifyAuth } from "../../../../lib/auth-middleware"
 import mongoose from "mongoose"
 
 // PUT - Update expense
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { userId, error } = await verifyAuth(request)
     if (error) return error
-
-    const { id } = params
+    const { id } = await params
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ error: "Invalid expense ID" }, { status: 400 })
@@ -20,8 +19,6 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const { amount, date, category, emoji, description } = body
 
     await connectDB()
-
-    // Find expense and verify ownership
     const expense = await Expense.findOne({ _id: id, userId })
 
     if (!expense) {
@@ -45,20 +42,17 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 }
 
 // DELETE - Delete expense
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { userId, error } = await verifyAuth(request)
     if (error) return error
-
-    const { id } = params
+    const { id } = await params
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ error: "Invalid expense ID" }, { status: 400 })
     }
 
     await connectDB()
-
-    // Find and delete expense (only if owned by user)
     const deletedExpense = await Expense.findOneAndDelete({ _id: id, userId })
 
     if (!deletedExpense) {
