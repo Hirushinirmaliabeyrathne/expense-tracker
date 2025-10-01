@@ -166,12 +166,44 @@ export default function ProfilePage() {
     setIsLoading(true)
 
     try {
-      // Save profile data to localStorage
+      // Get auth token from localStorage
+      const token = localStorage.getItem("authToken")
+      
+      if (!token) {
+        showToast("Not authenticated. Please login again.", "error")
+        window.location.href = "/auth/login"
+        return
+      }
+
+      // Call API to update profile in MongoDB
+      const response = await fetch("/api/user/profile", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          firstName: profile.firstName,
+          lastName: profile.lastName,
+          email: profile.email,
+          oldPassword: profile.oldPassword,
+          newPassword: profile.newPassword,
+          profileImage: profile.profileImage,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to update profile")
+      }
+
+      // Save to localStorage (cache)
       const profileData = {
-        firstName: profile.firstName,
-        lastName: profile.lastName,
-        email: profile.email,
-        profileImage: profile.profileImage,
+        firstName: data.user.firstName,
+        lastName: data.user.lastName,
+        email: data.user.email,
+        profileImage: data.user.profileImage,
       }
       localStorage.setItem("userProfile", JSON.stringify(profileData))
 
@@ -188,7 +220,8 @@ export default function ProfilePage() {
       showToast("Profile updated successfully!", "success")
     } catch (error) {
       console.error("Error updating profile:", error)
-      showToast("Failed to update profile. Please try again.", "error")
+      const errorMessage = error instanceof Error ? error.message : "Failed to update profile. Please try again."
+      showToast(errorMessage, "error")
     } finally {
       setIsLoading(false)
     }
