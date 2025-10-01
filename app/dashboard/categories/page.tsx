@@ -4,7 +4,7 @@ import AddCircleOutlineRoundedIcon from "@mui/icons-material/AddCircleOutlineRou
 import EmojiPicker, { type EmojiClickData } from "emoji-picker-react";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteRoundedIcon from "@mui/icons-material/DeleteRounded";
-import AddCategoryModal from "../../components/addcategorymodal";
+import AddCategoryModal from "../../components/AddCategoryModal";
 import { useCategories } from "../../hooks/use-categories";
 import { useExpenses } from "../../hooks/use-expenses";
 import { Category, Expense } from "../../types";
