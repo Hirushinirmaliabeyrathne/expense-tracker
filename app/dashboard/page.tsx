@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import Card from "../components/card"
+import Card from "../components/Card"
 import AddExpenseModal, { type ExpenseData } from "../components/addexpensemodal"
 import { useExpenses } from "../hooks/use-expenses"
 import { useCategories } from "../hooks/use-categories"
