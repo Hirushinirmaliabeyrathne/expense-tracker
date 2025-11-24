@@ -13,3 +13,28 @@ export default function Card({ title, value, desc }: CardProps) {
     </div>
   )
 }
+
+
+  // const cards = [
+  //   { 
+  //     title: "Account Name", 
+  //     value: user.firstName ? `${user.firstName} ${user.lastName}` : "Guest User", 
+  //     desc: "Active Profile" 
+  //   },
+  //   { 
+  //     title: "Email Address", 
+  //     // Note: If email is very long, it might wrap. Consider truncating if needed.
+  //     value: user.email || "No Email", 
+  //     desc: "Registered Contact" 
+  //   },
+  //   {
+  //     title: "Total Spent",
+  //     value: `$${totalExpenses.toFixed(2)}`,
+  //     desc: "Lifetime expenses",
+  //   },
+  //   { 
+  //     title: "Transactions", 
+  //     value: expenses.length.toString(), 
+  //     desc: "Total recorded items" 
+  //   },
+  // ]

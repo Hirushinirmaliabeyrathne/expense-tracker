@@ -4,8 +4,6 @@ import { useState, useEffect } from "react"
 import { categoryAPI } from "@/lib/api-client"
 import { Category } from "../types"
 
-
-
 export function useCategories() {
   const [categories, setCategories] = useState<Category[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -16,7 +14,8 @@ export function useCategories() {
       setIsLoading(true)
       setError(null)
       const data = await categoryAPI.getAll()
-      setCategories(data.categories || [])
+      // Handle both response formats: {categories: [...]} or just [...]
+      setCategories(Array.isArray(data) ? data : (data.categories || []))
     } catch (err) { 
       setError(err instanceof Error ? err.message : "Failed to fetch categories")
       console.error("Error fetching categories:", err)
@@ -25,21 +24,24 @@ export function useCategories() {
     }
   }
 
-  const addCategory = async (category: { name: string; emoji: string; color: string }) => {
+  const addCategory = async (categoryData: { name: string; emoji: string; color: string }) => {
     try {
-      const data = await categoryAPI.create(category)
-      setCategories((prev) => [data.category, ...prev])
-      return data.category
-    } catch (err) { 
-      throw err
+      const newCategory = await categoryAPI.create(categoryData);
+      // newCategory is already unwrapped by api-client
+      setCategories(prev => [...prev, newCategory]);
+      return newCategory;
+    } catch (error) {
+      console.error("Error adding category:", error);
+      throw error; 
     }
   }
 
   const updateCategory = async (id: string, updates: { name?: string; emoji?: string; color?: string }) => {
     try {
-      const data = await categoryAPI.update(id, updates)
-      setCategories((prev) => prev.map((cat) => (cat._id === id ? data.category : cat)))
-      return data.category
+      const updatedCategory = await categoryAPI.update(id, updates)
+      // updatedCategory is already unwrapped by api-client
+      setCategories((prev) => prev.map((cat) => (cat._id === id ? updatedCategory : cat)))
+      return updatedCategory
     } catch (err) { 
       throw err
     }
@@ -56,7 +58,7 @@ export function useCategories() {
 
   useEffect(() => {
     fetchCategories()
-  }, []) 
+  }, [])
 
   return {
     categories,

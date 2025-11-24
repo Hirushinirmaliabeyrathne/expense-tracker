@@ -11,7 +11,6 @@ import FormatListBulletedOutlinedIcon from "@mui/icons-material/FormatListBullet
 import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined"
 import ModeEditOutlinedIcon from "@mui/icons-material/ModeEditOutlined"
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined"
-import ArrowRightAltIcon from "@mui/icons-material/ArrowRightAlt"
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined"
 
 interface User {
@@ -134,7 +133,7 @@ export default function DashboardLayout({
           >
             <ModeEditOutlinedIcon className="w-4 h-4" />
             <span className="text-sm">Edit Profile</span>
-            <ArrowRightAltIcon className="w-4 h-4 ml-2" />
+           
           </Link>
         </div>
 
@@ -154,7 +153,7 @@ export default function DashboardLayout({
                   >
                     {item.icon}
                     <span className="flex-1">{item.name}</span>
-                    <ArrowRightAltIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                    
                   </Link>
                 </li>
               )

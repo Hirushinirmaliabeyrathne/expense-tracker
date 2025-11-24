@@ -1,10 +1,9 @@
-// SignUpForm.tsx
 "use client"
 
 import { useState } from "react"
 import type React from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter } from 'next/navigation'
 import { PhoneInput } from "react-international-phone"
 import "react-international-phone/style.css"
 

@@ -1,5 +1,7 @@
-// data/chartConfig.ts
 import { type TooltipItem } from "chart.js"
+
+// Your requested colors
+export const chartColors = ["#ffff00", "#cf0000", "#2d7200", "#0c84b9", "#9100ff"]
 
 export const pieOptions = {
   plugins: {

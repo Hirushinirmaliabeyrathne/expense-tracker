@@ -1,8 +1,11 @@
 "use client"
+
 import { useState } from "react"
 import { Search, Edit, Delete } from "@mui/icons-material"
 import { useExpenses } from "../../hooks/use-expenses"
 import { useCategories } from "../../hooks/use-categories"
+import AddCircleOutlineRoundedIcon from "@mui/icons-material/AddCircleOutlineRounded"
+import AddExpenseModal, { type ExpenseData } from "../../components/addexpensemodal"
 
 interface Expense {
   _id: string
@@ -14,14 +17,17 @@ interface Expense {
 }
 
 export default function ExpensesPage() {
-  const { expenses, isLoading, updateExpense, deleteExpense } = useExpenses()
-  const { categories } = useCategories()
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const { expenses, isLoading: expensesLoading, updateExpense, deleteExpense, addExpense } = useExpenses()
+  const { categories, addCategory, isLoading: categoriesLoading } = useCategories()
+  
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("All")
   const [dateRange, setDateRange] = useState("All Time")
   const [sortBy, setSortBy] = useState("Date (Newest)")
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
+  
   const [editForm, setEditForm] = useState({
     amount: "",
     category: "",
@@ -29,14 +35,58 @@ export default function ExpensesPage() {
     date: "",
   })
 
-  const filteredExpenses = expenses.filter((expense) => {
-    const matchesSearch = expense.description.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesCategory = selectedCategory === "All" || expense.category === selectedCategory
-    return matchesSearch && matchesCategory
-  })
+  // ------------------------------------------------------------------
+  // CORE LOGIC: Filter expenses based on existing categories
+  // ------------------------------------------------------------------
+  
+  // 1. Get a list of valid category names from the database
+  const validCategoryNames = categories.map((c) => c.name)
 
+  // 2. First pass: Only keep expenses that belong to a valid category
+  // This ensures if you delete a category, the expenses vanish from calculations
+  const validExpenses = expenses.filter((expense) => 
+    validCategoryNames.includes(expense.category)
+  )
+
+  // 3. Second pass: Apply UI filters (Search, Dropdown, Date) to the valid expenses
+  const filteredExpenses = validExpenses
+    .filter((expense) => {
+      const matchesSearch = expense.description.toLowerCase().includes(searchTerm.toLowerCase())
+      // Check if matches the "Category" dropdown filter
+      const matchesCategory = selectedCategory === "All" || expense.category === selectedCategory
+      
+      let matchesDate = true
+      const expDate = new Date(expense.date)
+      const now = new Date()
+      
+      if (dateRange === "This Month") {
+        matchesDate = expDate.getMonth() === now.getMonth() && expDate.getFullYear() === now.getFullYear()
+      } else if (dateRange === "Last Month") {
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+        matchesDate = expDate.getMonth() === lastMonth.getMonth() && expDate.getFullYear() === lastMonth.getFullYear()
+      } else if (dateRange === "This Year") {
+        matchesDate = expDate.getFullYear() === now.getFullYear()
+      }
+
+      return matchesSearch && matchesCategory && matchesDate
+    })
+    .sort((a, b) => {
+      const dateA = new Date(a.date).getTime()
+      const dateB = new Date(b.date).getTime()
+
+      if (sortBy === "Date (Newest)") return dateB - dateA
+      if (sortBy === "Date (Oldest)") return dateA - dateB
+      if (sortBy === "Amount (High)") return b.amount - a.amount
+      if (sortBy === "Amount (Low)") return a.amount - b.amount
+      return 0
+    })
+
+  // 4. Calculate Stats based ONLY on filtered expenses
   const totalAmount = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0)
   const averageAmount = filteredExpenses.length > 0 ? totalAmount / filteredExpenses.length : 0
+  const isLoading = expensesLoading || categoriesLoading
+
+  // ------------------------------------------------------------------
 
   const handleEditExpense = (expense: Expense) => {
     setEditingExpense(expense)
@@ -63,10 +113,24 @@ export default function ExpensesPage() {
     }
   }
 
+  const handleAddCategoryFromModal = async (categoryName: string) => {
+    const newCategory = {
+      name: categoryName,
+      emoji: "🆕",
+      color: "#9CA3AF",
+    }
+    await addCategory(newCategory)
+  }
+
   const handleDeleteExpense = async (id: string) => {
     if (confirm("Are you sure you want to delete this expense?")) {
       await deleteExpense(id)
     }
+  }
+
+  const handleAddExpense = async (expenseData: ExpenseData) => {
+    await addExpense(expenseData)
+    setIsModalOpen(false)
   }
 
   const handleClearFilters = () => {
@@ -76,7 +140,8 @@ export default function ExpensesPage() {
     setSortBy("Date (Newest)")
   }
 
-  const uniqueCategories = ["All", ...Array.from(new Set(categories.map((cat) => cat.name)))]
+  // Only show categories in the dropdown that actually exist
+  const uniqueCategories = ["All", ...validCategoryNames]
 
   return (
     <div className="p-6">
@@ -87,6 +152,13 @@ export default function ExpensesPage() {
             <p className="text-gray-600">View and manage all your expenses</p>
           </div>
         </div>
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="px-4 py-2 bg-[#001571] text-white rounded-lg flex items-center gap-2 hover:bg-[#001571]/90 transition"
+        >
+          <AddCircleOutlineRoundedIcon />
+          Add Expense
+        </button>
       </div>
 
       <div className="bg-white border border-gray-200 rounded-lg shadow-sm mb-6">
@@ -188,15 +260,13 @@ export default function ExpensesPage() {
       <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
         <div className="p-6 border-b border-gray-200">
           <h3 className="text-lg font-semibold">Expenses ({filteredExpenses.length})</h3>
-          <p className="text-sm text-gray-500">
-            Showing {filteredExpenses.length} of {expenses.length} expenses
-          </p>
+          
         </div>
         <div className="p-6">
-          {isLoading ? ( // Fix: Use isLoading here
+          {isLoading ? (
             <div className="text-center text-gray-500 py-8">Loading expenses...</div>
           ) : filteredExpenses.length === 0 ? (
-            <div className="text-center text-gray-500 py-8">No expenses found. Try adjusting your filters.</div>
+            <div className="text-center text-gray-500 py-8">No active expenses found. Try adjusting your filters or add a category.</div>
           ) : (
             <div className="space-y-4">
               {filteredExpenses.map((expense) => (
@@ -207,13 +277,13 @@ export default function ExpensesPage() {
                   <div className="flex items-center gap-4">
                     <span className="text-2xl">{expense.emoji}</span>
                     <div>
-                      <div className="font-medium">{expense.description}</div>
                       <div className="flex items-center gap-2 text-sm text-gray-500">
                         <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
                           {expense.category}
                         </span>
                         <span>{new Date(expense.date).toLocaleDateString()}</span>
                       </div>
+                       <div className="font-medium">{expense.description}</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -240,6 +310,7 @@ export default function ExpensesPage() {
         </div>
       </div>
 
+      {/* Edit Modal */}
       {isEditModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
@@ -311,7 +382,7 @@ export default function ExpensesPage() {
                 </div>
                 <div
                   onClick={handleUpdateExpense}
-                  className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 cursor-pointer transition-colors"
+                  className="px-4 py-2 text-sm font-medium bg-[#001571] text-white rounded-md hover:bg-blue-700 cursor-pointer transition-colors"
                 >
                   Update Expense
                 </div>
@@ -320,6 +391,15 @@ export default function ExpensesPage() {
           </div>
         </div>
       )}
+
+      {/* Add Expense Modal */}
+      <AddExpenseModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onAddExpense={handleAddExpense}
+        categories={categories}
+        onAddCategory={handleAddCategoryFromModal}
+      />
     </div>
   )
 }

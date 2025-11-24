@@ -1,8 +1,9 @@
-// ProfilePage.tsx
 "use client"
+
 import { useState, useRef, useEffect } from "react"
 import type React from "react"
-
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import Image from "next/image"
 import EditIcon from "@mui/icons-material/Edit"
 import DeleteIcon from "@mui/icons-material/Delete"
@@ -21,6 +22,8 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(false)
   const [imageUploading, setImageUploading] = useState(false)
   const [toastMessage, setToastMessage] = useState<{ message: string; type: "success" | "error" } | null>(null)
+  const [showOldPassword, setShowOldPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
 
   const [profile, setProfile] = useState<UserProfile>({
     firstName: "",
@@ -163,6 +166,11 @@ export default function ProfilePage() {
       return
     }
 
+    if (profile.oldPassword && !profile.newPassword) {
+      showToast("Please enter a new password.", "error")
+      return
+    }
+
     setIsLoading(true)
 
     try {
@@ -195,7 +203,13 @@ export default function ProfilePage() {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to update profile")
+        // Handle specific error messages from backend
+        if (response.status === 401 && data.error === "Current password is incorrect") {
+          showToast("Current password is incorrect. Please try again.", "error")
+        } else {
+          showToast(data.error || "Failed to update profile", "error")
+        }
+        return
       }
 
       // Save to localStorage (cache)
@@ -232,7 +246,7 @@ export default function ProfilePage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white shadow-lg rounded-lg overflow-hidden">
           {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-8">
+          <div className="bg-[#001571] px-6 py-8">
             <h1 className="text-3xl font-bold text-white">Profile Settings</h1>
             <p className="text-blue-100 mt-2">Manage your account information and preferences</p>
           </div>
@@ -362,28 +376,54 @@ export default function ProfilePage() {
                     <label htmlFor="oldPassword" className="block text-sm font-medium text-gray-700 mb-2">
                       Current Password
                     </label>
-                    <input
-                      type="password"
-                      id="oldPassword"
-                      value={profile.oldPassword}
-                      onChange={(e) => handleInputChange("oldPassword", e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Enter current password"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showOldPassword ? "text" : "password"}
+                        id="oldPassword"
+                        value={profile.oldPassword}
+                        onChange={(e) => handleInputChange("oldPassword", e.target.value)}
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Enter current password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowOldPassword(!showOldPassword)}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                      >
+                        {showOldPassword ? (
+                          <VisibilityOffIcon className="h-5 w-5" />
+                        ) : (
+                          <VisibilityIcon className="h-5 w-5" />
+                        )}
+                      </button>
+                    </div>
                   </div>
 
                   <div>
                     <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-2">
                       New Password
                     </label>
-                    <input
-                      type="password"
-                      id="newPassword"
-                      value={profile.newPassword}
-                      onChange={(e) => handleInputChange("newPassword", e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Enter new password"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showNewPassword ? "text" : "password"}
+                        id="newPassword"
+                        value={profile.newPassword}
+                        onChange={(e) => handleInputChange("newPassword", e.target.value)}
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Enter new password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                      >
+                        {showNewPassword ? (
+                          <VisibilityOffIcon className="h-5 w-5" />
+                        ) : (
+                          <VisibilityIcon className="h-5 w-5" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
                 <p className="text-sm text-gray-600 mt-2">Leave blank if you don&apos;t want to change your password</p>
@@ -394,7 +434,7 @@ export default function ProfilePage() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-[#001571] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer hover:bg-[#001571]/90"
                 >
                   {isLoading ? (
                     <>
